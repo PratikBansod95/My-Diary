@@ -49,7 +49,7 @@ export async function callOpenAI({
     if (error?.name === "AbortError") {
       throw Object.assign(
         new Error(
-          "The diary took too long to answer (model timeout). Try Speak again, or set OPENROUTER_MODEL on Vercel to a faster vision model such as google/gemini-2.0-flash-001."
+          "The diary took too long to answer (model timeout). Try Speak again, or set OPENROUTER_MODEL on Vercel to a vision model your OpenRouter key can use."
         ),
         { status: 504 }
       );

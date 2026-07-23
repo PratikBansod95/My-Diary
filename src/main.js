@@ -136,7 +136,7 @@ async function askNow(userAction) {
     const timedOut = /504|timeout|FUNCTION_INVOCATION|took too long/i.test(raw);
     setStatus(
       timedOut
-        ? "Timed out. Set OPENROUTER_MODEL to google/gemini-2.0-flash-001 on Vercel."
+        ? "Timed out waiting for the model. Free NVIDIA queues can be slow — retry Speak, or set OPENROUTER_MODEL to a faster vision model you have access to."
         : raw,
       { error: true }
     );

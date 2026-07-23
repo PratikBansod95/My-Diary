@@ -1,9 +1,9 @@
 import { callOpenAI } from "./openai.js";
 
 export const OPENROUTER_DEFAULT_BASE_URL = "https://openrouter.ai/api/v1";
-// Free nano VL models often queue past Vercel's limit — prefer a fast Flash model.
-// Override anytime with OPENROUTER_MODEL. For zero-cost routing use: openrouter/free
-export const OPENROUTER_DEFAULT_MODEL = "google/gemini-2.0-flash-001";
+// Default to the NVIDIA free vision model the project was set up with.
+// Override with OPENROUTER_MODEL (e.g. google/gemini-2.0-flash-001 if you have that provider on OpenRouter).
+export const OPENROUTER_DEFAULT_MODEL = "nvidia/nemotron-nano-12b-v2-vl:free";
 
 /**
  * OpenRouter OpenAI-compatible chat completions.
