@@ -126,9 +126,10 @@ async function askNow(userAction) {
       const view = canvasApp.getView();
       canvasApp.setView({
         ...view,
-        x: rect.width * 0.2 - focus.x * view.scale,
-        y: rect.height * 0.25 - focus.y * view.scale,
+        x: rect.width * 0.18 - focus.x * view.scale,
+        y: rect.height * 0.22 - focus.y * view.scale,
       });
+      drafts.syncPositions();
       games.sync();
     }
     setStatus(
@@ -150,6 +151,7 @@ async function persist() {
     tiles,
     view: canvasApp.getView(),
     games: games.serialize(),
+    replies: drafts.serialize(),
   });
 }
 
@@ -159,6 +161,9 @@ async function restore() {
   if (page.tiles?.length) canvasApp.importTiles(page.tiles);
   if (page.view) canvasApp.setView(page.view);
   if (page.games?.length) games.restore(page.games);
+  if (page.replies?.length) drafts.restore(page.replies);
+  drafts.syncPositions();
+  games.sync();
   setStatus("A previous page returns.");
 }
 

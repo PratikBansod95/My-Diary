@@ -170,29 +170,48 @@ export function createCanvasApp({ stage, tileCanvas, inkCanvas, onStrokeEnd, onS
 
   async function burnDomElement(el, worldX, worldY) {
     const text = el.innerText || el.textContent || "";
+    if (text.trim()) burnWorldText(text, worldX, worldY);
+  }
+
+  /** Burn diary prose in large world units so it matches stylus handwriting scale. */
+  function burnWorldText(text, worldX, worldY) {
+    const raw = String(text || "").trim();
+    if (!raw) return;
+    const fontSize = 56;
+    const lineHeight = 70;
+    const maxWidth = 900;
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
-    const width = Math.min(520, Math.max(140, Math.ceil((el.offsetWidth || 200) * 1.1)));
-    const lines = text.split(/\n/).flatMap((line) => {
-      if (line.length < 42) return [line];
-      const parts = [];
-      let rest = line;
-      while (rest.length > 42) {
-        parts.push(rest.slice(0, 42));
-        rest = rest.slice(42);
-      }
-      if (rest) parts.push(rest);
-      return parts;
-    });
-    const lineHeight = 30;
-    canvas.width = width * 2;
-    canvas.height = Math.max(48, lines.length * lineHeight + 20) * 2;
-    ctx.scale(2, 2);
-    ctx.clearRect(0, 0, width, canvas.height);
-    ctx.fillStyle = "#1f3d2e";
-    ctx.font = "italic 22px 'IM Fell English', Georgia, serif";
-    lines.forEach((line, i) => ctx.fillText(line, 8, 28 + i * lineHeight));
-    burnImage(canvas, worldX, worldY, width, Math.max(24, lines.length * lineHeight + 10));
+    ctx.font = `italic ${fontSize}px "IM Fell English", Georgia, serif`;
+
+    const words = raw.split(/\s+/);
+    const lines = [];
+    let current = "";
+    for (const word of words) {
+      const trial = current ? `${current} ${word}` : word;
+      if (ctx.measureText(trial).width > maxWidth && current) {
+        lines.push(current);
+        current = word;
+      } else current = trial;
+    }
+    if (current) lines.push(current);
+
+    const width = Math.ceil(
+      Math.min(maxWidth + 40, Math.max(...lines.map((line) => ctx.measureText(line).width), 120) + 40)
+    );
+    const height = Math.ceil(lines.length * lineHeight + 40);
+    const scale = 2;
+    canvas.width = width * scale;
+    canvas.height = height * scale;
+    const draw = canvas.getContext("2d");
+    draw.scale(scale, scale);
+    draw.clearRect(0, 0, width, height);
+    draw.fillStyle = "#1a3328";
+    draw.font = `italic ${fontSize}px "IM Fell English", Georgia, serif`;
+    draw.textBaseline = "top";
+    lines.forEach((line, i) => draw.fillText(line, 16, 16 + i * lineHeight));
+    burnImage(canvas, worldX, worldY, width, height);
+    expandDirty(worldX, worldY, worldX + width, worldY + height, 12);
   }
 
   function drawMark(symbol, cx, cy, size = 80) {
@@ -466,6 +485,7 @@ export function createCanvasApp({ stage, tileCanvas, inkCanvas, onStrokeEnd, onS
     importTiles,
     exportTiles,
     burnDomElement,
+    burnWorldText,
     drawVectorCommand,
     drawMark,
     worldToScreen,

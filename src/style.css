@@ -394,29 +394,45 @@ body {
   color: var(--danger);
 }
 
-.draft-item {
+.diary-reply {
   position: absolute;
-  min-width: 120px;
-  max-width: 420px;
-  padding: 10px 12px;
+  min-width: 140px;
+  max-width: min(70vw, 420px);
+  padding: 4px 2px;
   border: none;
-  border-radius: 0;
   background: transparent;
   color: var(--ink-diary);
   font-family: var(--font-brand);
   font-style: italic;
-  font-size: 1.15rem;
-  line-height: 1.35;
-  box-shadow: none;
+  font-size: clamp(1.25rem, 3.6vw, 1.7rem);
+  line-height: 1.4;
+  text-shadow: 0 1px 0 rgba(255, 245, 220, 0.35);
   pointer-events: none;
+  z-index: 6;
+}
+
+.diary-reply-body {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .diary-ink-appear {
   animation: ink-in 700ms ease-out both;
 }
 
-.draft-item .draft-actions {
-  display: none;
+.draft-item {
+  position: absolute;
+  min-width: 120px;
+  max-width: 420px;
+  padding: 10px 12px;
+  border: none;
+  background: transparent;
+  color: var(--ink-diary);
+  font-family: var(--font-brand);
+  font-style: italic;
+  font-size: 1.15rem;
+  line-height: 1.35;
+  pointer-events: none;
 }
 
 .draft-formula {
