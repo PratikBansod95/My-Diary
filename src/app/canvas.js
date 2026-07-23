@@ -257,7 +257,7 @@ export function createCanvasApp({ stage, tileCanvas, inkCanvas, onStrokeEnd, onS
     const originY = Math.max(0, Math.floor(box.minY - pad));
     const width = Math.min(CANVAS_W - originX, Math.ceil(box.maxX - originX + pad));
     const height = Math.min(CANVAS_H - originY, Math.ceil(box.maxY - originY + pad));
-    const maxSide = 1280;
+    const maxSide = 1024;
     const scale = Math.min(1, maxSide / Math.max(width, height, 1));
     const outW = Math.max(1, Math.round(width * scale));
     const outH = Math.max(1, Math.round(height * scale));

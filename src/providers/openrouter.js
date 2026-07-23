@@ -11,6 +11,8 @@ export async function callOpenRouter(options) {
   return callOpenAI({
     ...options,
     effort: "",
+    // Many free models reject response_format; we parse JSON from text instead.
+    jsonMode: false,
     baseUrl: options.baseUrl || OPENROUTER_DEFAULT_BASE_URL,
     extraHeaders: {
       "HTTP-Referer": options.referer || "https://github.com/PratikBansod95/My-Diary",

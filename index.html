@@ -18,6 +18,8 @@
         <p class="brand-whisper" id="statusLine">The page listens when the ink settles.</p>
       </header>
 
+      <div class="status-toast" id="statusToast" role="status" aria-live="polite"></div>
+
       <main class="stage" id="stage">
         <div class="page-shell" id="pageShell">
           <canvas id="tileCanvas" aria-label="Confirmed ink"></canvas>
@@ -44,13 +46,13 @@
     </div>
 
     <dialog class="sheet-dialog" id="gamesDialog">
-      <form method="dialog" class="sheet-panel">
+      <div class="sheet-panel">
         <h2>Play with the diary</h2>
         <p>You move first. The diary answers on the board.</p>
-        <button type="submit" class="primary" value="tic_tac_toe">Tic-tac-toe</button>
-        <button type="submit" class="primary" value="hangman">Hangman</button>
-        <button type="submit" class="ghost" value="cancel">Close</button>
-      </form>
+        <button type="button" class="primary" data-game="tic_tac_toe">Tic-tac-toe</button>
+        <button type="button" class="primary" data-game="hangman">Hangman</button>
+        <button type="button" class="ghost" id="gamesCloseBtn">Close</button>
+      </div>
     </dialog>
 
     <script type="module" src="/src/main.js"></script>

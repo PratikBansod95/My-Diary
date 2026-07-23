@@ -7,6 +7,7 @@ export async function callOpenAI({
   userText,
   imageBase64,
   extraHeaders = {},
+  jsonMode = false,
 }) {
   const root = (baseUrl || "https://api.openai.com/v1").replace(/\/$/, "");
   const content = [{ type: "text", text: userText }];
@@ -25,6 +26,8 @@ export async function callOpenAI({
     temperature: 0.4,
   };
   if (effort) payload.reasoning_effort = effort;
+  if (jsonMode) payload.response_format = { type: "json_object" };
+
   const response = await fetch(`${root}/chat/completions`, {
     method: "POST",
     headers: {
@@ -36,11 +39,19 @@ export async function callOpenAI({
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    const message = data?.error?.message || `OpenAI-compatible error ${response.status}`;
-    throw Object.assign(new Error(message), { status: response.status });
+    const message =
+      data?.error?.message ||
+      data?.error?.metadata?.raw ||
+      (typeof data?.error === "string" ? data.error : null) ||
+      `OpenAI-compatible error ${response.status}`;
+    throw Object.assign(new Error(String(message)), { status: response.status });
   }
-  const text = data?.choices?.[0]?.message?.content || "";
-  if (!text) throw new Error("OpenAI-compatible provider returned an empty response");
+  const raw = data?.choices?.[0]?.message?.content;
+  let text = "";
+  if (typeof raw === "string") text = raw;
+  else if (Array.isArray(raw)) {
+    text = raw.map((part) => (typeof part === "string" ? part : part?.text || "")).join("");
+  }
+  if (!text) throw new Error("Provider returned an empty response");
   return text;
 }
-
