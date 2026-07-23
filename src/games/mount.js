@@ -32,8 +32,10 @@ export function createGameMount({ root, canvasApp, onStatus }) {
   }
 
   async function mountFromCommand(cmd) {
-    if (cmd.game === "tic_tac_toe") return mountTicTacToe(cmd.x, cmd.y);
-    if (cmd.game === "hangman") return mountHangman(cmd.x, cmd.y);
+    const x = Math.round(cmd.x || 400);
+    const y = Math.round(cmd.y || 400);
+    if (cmd.game === "tic_tac_toe") return mountTicTacToe(x, y);
+    if (cmd.game === "hangman") return mountHangman(x, y);
   }
 
   function mountTicTacToe(x, y, saved) {

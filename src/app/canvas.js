@@ -195,6 +195,26 @@ export function createCanvasApp({ stage, tileCanvas, inkCanvas, onStrokeEnd, onS
     burnImage(canvas, worldX, worldY, width, Math.max(24, lines.length * lineHeight + 10));
   }
 
+  function drawMark(symbol, cx, cy, size = 80) {
+    const s = Math.max(24, size);
+    const half = s / 2;
+    if (String(symbol).toUpperCase() === "O") {
+      strokeEllipse(cx, cy, half * 0.85, half * 0.85);
+    } else {
+      const inset = half * 0.25;
+      strokeToTiles(cx - half + inset, cy - half + inset, cx + half - inset, cy + half - inset, 5, "#1f3d2e");
+      strokeToTiles(cx + half - inset, cy - half + inset, cx - half + inset, cy + half - inset, 5, "#1f3d2e");
+    }
+    expandDirty(cx - half, cy - half, cx + half, cy + half, 8);
+    latestInput = {
+      x: cx - half,
+      y: cy - half,
+      w: s,
+      h: s,
+    };
+    render();
+  }
+
   function drawVectorCommand(cmd) {
     for (const item of cmd.items || []) {
       const pts = item.points || [];
@@ -447,6 +467,7 @@ export function createCanvasApp({ stage, tileCanvas, inkCanvas, onStrokeEnd, onS
     exportTiles,
     burnDomElement,
     drawVectorCommand,
+    drawMark,
     worldToScreen,
     screenToWorld,
     getView,

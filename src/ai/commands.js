@@ -65,6 +65,16 @@ export function normalizeCommands(payload) {
       if (game === "tic_tac_toe" || game === "hangman") {
         commands.push({ type, x, y, game });
       }
+      continue;
+    }
+    if (type === "place_mark" || type === "mark") {
+      const symbol = String(item.symbol || item.mark || "O")
+        .trim()
+        .toUpperCase()
+        .slice(0, 1);
+      if (symbol !== "X" && symbol !== "O") continue;
+      const size = clamp(Math.round(num(item.size, 80)), 24, 220);
+      commands.push({ type: "place_mark", x, y, symbol, size });
     }
   }
   return commands;

@@ -14,12 +14,15 @@ test("normalizeCommands validates write_text and games", () => {
     commands: [
       { type: "write_text", x: 10, y: 20, text: "Hello" },
       { type: "start_game", x: 1, y: 2, game: "tic_tac_toe" },
+      { type: "place_mark", x: 50, y: 60, symbol: "O", size: 70 },
       { type: "write_text", x: -5, y: 999999, text: "" },
     ],
   });
-  assert.equal(commands.length, 2);
+  assert.equal(commands.length, 3);
   assert.equal(commands[0].text, "Hello");
   assert.equal(commands[1].game, "tic_tac_toe");
+  assert.equal(commands[2].type, "place_mark");
+  assert.equal(commands[2].symbol, "O");
 });
 
 test("parseGameMove tic-tac-toe", () => {

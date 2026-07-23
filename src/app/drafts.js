@@ -57,6 +57,10 @@ export function createDraftLayer({ root, canvasApp, onAcceptGame, onStatus }) {
         onAcceptGame?.(cmd);
         continue;
       }
+      if (cmd.type === "place_mark") {
+        canvasApp.drawMark(cmd.symbol, cmd.x, cmd.y, cmd.size);
+        continue;
+      }
       if (cmd.type === "draw") {
         canvasApp.drawVectorCommand(cmd);
         continue;
