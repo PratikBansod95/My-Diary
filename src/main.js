@@ -119,10 +119,22 @@ async function askNow(userAction) {
       geometry: atlas.geometry,
     });
     canvasApp.consumeDirty();
-    drafts.placeCommands(data.commands || []);
+    const anchor = atlas.geometry.latestInput;
+    const focus = drafts.placeCommands(data.commands || [], anchor);
+    if (focus) {
+      const rect = stage.getBoundingClientRect();
+      const view = canvasApp.getView();
+      canvasApp.setView({
+        ...view,
+        x: rect.width * 0.2 - focus.x * view.scale,
+        y: rect.height * 0.25 - focus.y * view.scale,
+      });
+      drafts.syncPositions();
+      games.sync();
+    }
     setStatus(
       data.commands?.length
-        ? "A reply waits — Keep or Discard."
+        ? "Reply is on the page — Keep or Discard."
         : "The diary returned no commands. Try Ask again."
     );
     await persist();

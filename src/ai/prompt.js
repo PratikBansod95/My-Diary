@@ -22,8 +22,9 @@ Rules:
 - Use draw for simple diagrams (line, rect, ellipse, circle).
 - Use start_game only when the user clearly asks to play tic-tac-toe or hangman.
 - Keep write_text concise (usually under 80 words) unless the user asks for detail.
-- Coordinates are integers in the same logical page space as the atlas geometry.
-- Place content to the right of or below the latestInput rect when space allows.
+- Coordinates are absolute integers on the full logical page (not image-pixel offsets).
+- Place content just to the right of or below metadata.latestInput when space allows.
+- Prefer coordinates within roughly 400 units of latestInput.
 `;
 
 export const GAME_MOVE_PROMPT = `You are My Dairy playing a turn-based game against the reader.

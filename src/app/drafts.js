@@ -8,8 +8,31 @@ export function createDraftLayer({ root, canvasApp, onAcceptGame, onStatus }) {
     drafts.length = 0;
   }
 
-  function placeCommands(commands) {
+  function resolvePosition(cmd, anchor) {
+    let x = Number(cmd.x) || 0;
+    let y = Number(cmd.y) || 0;
+    if (anchor) {
+      const ax = anchor.x ?? 0;
+      const ay = anchor.y ?? 0;
+      const aw = anchor.w ?? 40;
+      const ah = anchor.h ?? 40;
+      const far = Math.abs(x - ax) > 1800 || Math.abs(y - ay) > 1800 || x < 0 || y < 0;
+      if (far || (x === 0 && y === 0)) {
+        x = Math.round(ax + aw + 40);
+        y = Math.round(ay);
+      }
+    }
+    return { x, y };
+  }
+
+  function placeCommands(commands, anchor = null) {
+    let firstWorld = null;
     for (const cmd of commands) {
+      const pos = resolvePosition(cmd, anchor);
+      cmd.x = pos.x;
+      cmd.y = pos.y;
+      if (!firstWorld) firstWorld = { ...pos };
+
       if (cmd.type === "start_game") {
         onAcceptGame?.(cmd);
         continue;
@@ -18,11 +41,12 @@ export function createDraftLayer({ root, canvasApp, onAcceptGame, onStatus }) {
         const item = document.createElement("div");
         item.className = "draft-item";
         item.dataset.type = "draw";
-        item.style.left = `${canvasApp.worldToScreen(cmd.x, cmd.y).x}px`;
-        item.style.top = `${canvasApp.worldToScreen(cmd.x, cmd.y).y}px`;
-        item.innerHTML = `<div>Diagram ready</div><div class="draft-actions"><button type="button" data-act="accept">Keep</button><button type="button" data-act="discard">Discard</button></div>`;
         item._cmd = cmd;
         item._world = { x: cmd.x, y: cmd.y };
+        const screen = canvasApp.worldToScreen(cmd.x, cmd.y);
+        item.style.left = `${screen.x}px`;
+        item.style.top = `${screen.y}px`;
+        item.innerHTML = `<div>Diagram ready</div><div class="draft-actions"><button type="button" data-act="accept">Keep</button><button type="button" data-act="discard">Discard</button></div>`;
         wireDrag(item);
         wireActions(item);
         root.appendChild(item);
@@ -56,6 +80,7 @@ export function createDraftLayer({ root, canvasApp, onAcceptGame, onStatus }) {
       drafts.push(item);
     }
     syncPositions();
+    return firstWorld;
   }
 
   function wireDrag(item) {
