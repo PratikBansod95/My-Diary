@@ -1,4 +1,4 @@
-import { DIARY_SYSTEM_PROMPT, GAME_MOVE_PROMPT, buildCanvasUserPrompt } from "../src/ai/prompt.js";
+import { DIARY_SYSTEM_PROMPT, GAME_MOVE_PROMPT, buildCanvasUserPrompt, THEME_PERSONAS } from "../src/ai/prompt.js";
 import { extractJsonObject, normalizeCommands, parseGameMove } from "../src/ai/commands.js";
 import {
   callOpenRouter,
@@ -85,12 +85,14 @@ export async function handleAiRequest({ body }) {
     const imageBase64 = body.atlasPngBase64 || "";
     if (!imageBase64) return { status: 400, body: { error: "Missing atlas image" } };
 
-    const pageMemory = Array.isArray(body.pageMemory)
-      ? body.pageMemory.map((t) => String(t || "").trim()).filter(Boolean).slice(-8)
-      : [];
-    const userText = buildCanvasUserPrompt(geometry, body.userAction || "auto", pageMemory);
+    const uiTheme = String(body.uiTheme || "arcane").toLowerCase();
+    const persona = THEME_PERSONAS[uiTheme] || THEME_PERSONAS.arcane;
+    const userText = buildCanvasUserPrompt(geometry, body.userAction || "auto", [], {
+      uiTheme,
+      persona,
+    });
     const text = await callProvider(config, {
-      system: DIARY_SYSTEM_PROMPT,
+      system: `${DIARY_SYSTEM_PROMPT}\n\nActive persona: ${persona}`,
       userText,
       imageBase64,
     });

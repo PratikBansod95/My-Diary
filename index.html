@@ -15,7 +15,7 @@
     <div id="app">
       <header class="brand-bar" aria-label="My Dairy">
         <h1 class="brand">My Dairy</h1>
-        <p class="brand-whisper" id="statusLine">Write anything. The page answers like a friend.</p>
+        <p class="brand-whisper" id="statusLine">Write, then Keep drafts like PenEcho.</p>
       </header>
 
       <div class="status-toast" id="statusToast" role="status" aria-live="polite"></div>
@@ -33,27 +33,28 @@
         <button type="button" class="tool active" data-tool="pen" title="Pen">Pen</button>
         <button type="button" class="tool" data-tool="eraser" title="Eraser">Erase</button>
         <button type="button" class="tool" data-tool="pan" title="Pan">Pan</button>
-        <button type="button" class="action primary-ask" id="askBtn" title="Let the diary answer">Speak</button>
-        <label class="delay-control" title="How long after you stop writing before the diary answers">
-          <span>Listen</span>
+        <button type="button" class="tool" data-tool="lasso" title="Lasso">Lasso</button>
+        <button type="button" class="action primary-ask" id="askBtn" title="Ask the canvas">Speak</button>
+        <button type="button" class="action" id="keepAllBtn" title="Keep all drafts">Keep</button>
+        <button type="button" class="action quiet" id="discardAllBtn" title="Discard all drafts">Discard</button>
+        <label class="delay-control" title="Auto-ask delay">
+          <span>Auto</span>
           <input type="range" id="autoDelay" min="0" max="10" step="1" value="2" />
           <em id="autoDelayLabel">2s</em>
         </label>
-        <button type="button" class="action quiet" id="gamesBtn" title="Optional play">Play</button>
+        <label class="theme-control" title="Reply persona">
+          <span>Mode</span>
+          <select id="themeSelect">
+            <option value="arcane">Arcane</option>
+            <option value="scifi">Sci-fi</option>
+            <option value="research">Research</option>
+            <option value="studio">Studio</option>
+          </select>
+        </label>
         <button type="button" class="action quiet" id="newPageBtn" title="New page">New</button>
         <button type="button" class="action quiet" id="exportBtn" title="Export PNG">Export</button>
       </nav>
     </div>
-
-    <dialog class="sheet-dialog" id="gamesDialog">
-      <div class="sheet-panel">
-        <h2>If you wish to play</h2>
-        <p>Most days this is just a friend on the page. Games are optional — ink on the parchment, nothing floating above it.</p>
-        <button type="button" class="primary" data-game="tic_tac_toe">Tic-tac-toe</button>
-        <button type="button" class="primary" data-game="hangman">Hangman</button>
-        <button type="button" class="ghost" id="gamesCloseBtn">Close</button>
-      </div>
-    </dialog>
 
     <script type="module" src="/src/main.js"></script>
   </body>

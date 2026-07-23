@@ -2,11 +2,12 @@ export function createToolbar({
   root,
   onTool,
   onAsk,
-  onGames,
   onNewPage,
   onExport,
-  onSettings,
   onAutoDelay,
+  onAcceptAll,
+  onDiscardAll,
+  onTheme,
 }) {
   root.querySelectorAll(".tool").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -17,10 +18,10 @@ export function createToolbar({
   });
 
   root.querySelector("#askBtn")?.addEventListener("click", () => onAsk?.());
-  root.querySelector("#gamesBtn")?.addEventListener("click", () => onGames?.());
   root.querySelector("#newPageBtn")?.addEventListener("click", () => onNewPage?.());
   root.querySelector("#exportBtn")?.addEventListener("click", () => onExport?.());
-  root.querySelector("#settingsBtn")?.addEventListener("click", () => onSettings?.());
+  root.querySelector("#keepAllBtn")?.addEventListener("click", () => onAcceptAll?.());
+  root.querySelector("#discardAllBtn")?.addEventListener("click", () => onDiscardAll?.());
 
   const delay = root.querySelector("#autoDelay");
   const delayLabel = root.querySelector("#autoDelayLabel");
@@ -29,11 +30,18 @@ export function createToolbar({
     onAutoDelay?.(Number(delay.value));
   });
 
+  const theme = root.querySelector("#themeSelect");
+  theme?.addEventListener("change", () => onTheme?.(theme.value));
+
   function setDelay(value) {
     if (!delay) return;
     delay.value = String(value);
     delayLabel.textContent = `${value}s`;
   }
 
-  return { setDelay };
+  function setTheme(value) {
+    if (theme) theme.value = value;
+  }
+
+  return { setDelay, setTheme };
 }

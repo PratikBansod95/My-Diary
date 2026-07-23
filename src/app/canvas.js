@@ -17,6 +17,15 @@ export function createCanvasApp({ stage, tileCanvas, inkCanvas, onStrokeEnd, onS
   let latestInput = null;
   let pointers = new Map();
   let pinch = null;
+  let selectionFocus = null;
+
+  function setSelectionFocus(box) {
+    selectionFocus = box ? { x: box.x, y: box.y, w: box.w, h: box.h } : null;
+  }
+
+  function getSelectionFocus() {
+    return selectionFocus ? { ...selectionFocus } : null;
+  }
 
   function resize() {
     const rect = stage.getBoundingClientRect();
@@ -119,6 +128,7 @@ export function createCanvasApp({ stage, tileCanvas, inkCanvas, onStrokeEnd, onS
     tool = next;
     panMode = next === "pan";
     inkCanvas.style.cursor = panMode ? "grab" : "crosshair";
+    inkCanvas.style.pointerEvents = next === "lasso" ? "none" : "auto";
   }
 
   function clearAll() {
@@ -256,39 +266,189 @@ export function createCanvasApp({ stage, tileCanvas, inkCanvas, onStrokeEnd, onS
   }
 
   function drawVectorCommand(cmd) {
+    const scale = Number(cmd.scale) || 1;
+    const ox = cmd.x || 0;
+    const oy = cmd.y || 0;
     for (const item of cmd.items || []) {
-      const pts = item.points || [];
+      const pts = (item.points || []).map((p, i) => {
+        // scale points relative to command origin for draft resize
+        if (scale === 1) return p;
+        return Math.round(p * scale);
+      });
       const shape = String(item.shape || "").toLowerCase();
       if (shape === "heart" && pts.length >= 2) {
         const [cx, cy, size = 70] = pts;
-        strokeHeart(cmd.x + cx, cmd.y + cy, size);
+        strokeHeart(ox + cx, oy + cy, size);
+      } else if (shape === "arc" && pts.length >= 6) {
+        const [cx, cy, rx, ry, startDeg, sweepDeg] = pts;
+        strokeArc(ox + cx, oy + cy, rx, ry, startDeg, sweepDeg);
       } else if (shape === "rect" && pts.length >= 4) {
         const [x, y, w, h] = pts;
-        strokeRect(cmd.x + x, cmd.y + y, w, h);
+        strokeRect(ox + x, oy + y, w, h);
       } else if ((shape === "circle" || shape === "ellipse") && pts.length >= 3) {
         if (shape === "circle" || pts.length === 3) {
           const [cx, cy, r] = pts;
-          strokeEllipse(cmd.x + cx, cmd.y + cy, r, r);
+          strokeEllipse(ox + cx, oy + cy, r, r);
         } else {
           const [cx, cy, rx, ry] = pts;
-          strokeEllipse(cmd.x + cx, cmd.y + cy, rx, ry);
+          strokeEllipse(ox + cx, oy + cy, rx, ry);
         }
-      } else if (shape === "ellipse" && pts.length >= 4) {
-        const [cx, cy, rx, ry] = pts;
-        strokeEllipse(cmd.x + cx, cmd.y + cy, rx, ry);
       } else if (pts.length >= 4) {
         for (let i = 0; i + 3 < pts.length; i += 2) {
-          strokeToTiles(
-            cmd.x + pts[i],
-            cmd.y + pts[i + 1],
-            cmd.x + pts[i + 2],
-            cmd.y + pts[i + 3],
-            3,
-            "#1f3d2e"
-          );
+          strokeToTiles(ox + pts[i], oy + pts[i + 1], ox + pts[i + 2], oy + pts[i + 3], 3, "#1f3d2e");
         }
       }
     }
+    render();
+  }
+
+  function strokeArc(cx, cy, rx, ry, startDeg, sweepDeg) {
+    const steps = Math.max(8, Math.ceil(Math.abs(sweepDeg) / 6));
+    let prevX = null;
+    let prevY = null;
+    for (let i = 0; i <= steps; i++) {
+      const deg = startDeg + (sweepDeg * i) / steps;
+      const a = (deg * Math.PI) / 180;
+      const x = cx + Math.cos(a) * rx;
+      const y = cy + Math.sin(a) * ry;
+      if (prevX != null) strokeToTiles(prevX, prevY, x, y, 3, "#1f3d2e");
+      prevX = x;
+      prevY = y;
+    }
+  }
+
+  function eraseRegion(cmd) {
+    if (Number.isFinite(cmd.w) && Number.isFinite(cmd.h)) {
+      eraseRect(Number(cmd.x) || 0, Number(cmd.y) || 0, cmd.w, cmd.h);
+      return;
+    }
+    const pts = cmd.points || [];
+    for (let i = 0; i + 3 < pts.length; i += 2) {
+      strokeToTiles(pts[i], pts[i + 1], pts[i + 2], pts[i + 3], cmd.width || 24, "#000", true);
+    }
+    render();
+  }
+
+  function eraseRect(x, y, w, h) {
+    const tx0 = Math.floor(x / TILE);
+    const ty0 = Math.floor(y / TILE);
+    const tx1 = Math.floor((x + w) / TILE);
+    const ty1 = Math.floor((y + h) / TILE);
+    for (let ty = ty0; ty <= ty1; ty++) {
+      for (let tx = tx0; tx <= tx1; tx++) {
+        if (tx < 0 || ty < 0 || tx * TILE >= CANVAS_W || ty * TILE >= CANVAS_H) continue;
+        const tile = ensureTile(tx, ty);
+        tile.ctx.clearRect(x - tx * TILE, y - ty * TILE, w, h);
+      }
+    }
+    expandDirty(x, y, x + w, y + h, 4);
+    render();
+  }
+
+  function safeEvalExpression(expression, x) {
+    let src = String(expression || "")
+      .toLowerCase()
+      .replace(/\^/g, "**")
+      .replace(/\bln\b/g, "log")
+      .replace(/\bpi\b/g, "pi");
+    src = src.replace(/[^0-9x+\-*/().e,\s]/gi, (ch) => {
+      if ("sincostansqrtabsexplogpie".includes(ch)) return ch;
+      return "";
+    });
+    // Rebuild: allow letters for function names
+    src = String(expression || "")
+      .toLowerCase()
+      .replace(/\^/g, "**")
+      .replace(/\bln\b/g, "log");
+    if (/[^0-9a-z_+\-*/().\s]/i.test(src.replace(/\*\*/g, "*"))) return null;
+    try {
+      // eslint-disable-next-line no-new-func
+      const fn = new Function(
+        "x",
+        "const sin=Math.sin,cos=Math.cos,tan=Math.tan,sqrt=Math.sqrt,abs=Math.abs,exp=Math.exp,log=Math.log,pi=Math.PI,e=Math.E; return (" +
+          src +
+          ");"
+      );
+      const y = fn(x);
+      return Number.isFinite(y) ? y : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function samplePlot(cmd) {
+    const expr = cmd.expression || cmd.expr || "x";
+    const w = Math.max(180, Math.min(1400, Number(cmd.w) || 480));
+    const h = Math.max(140, Math.min(1000, Number(cmd.h) || 320));
+    const xMin = Number.isFinite(cmd.xMin) ? cmd.xMin : -5;
+    const xMax = Number.isFinite(cmd.xMax) ? cmd.xMax : 5;
+    const points = [];
+    const steps = 80;
+    let yMin = Infinity;
+    let yMax = -Infinity;
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps;
+      const xv = xMin + (xMax - xMin) * t;
+      const yv = safeEvalExpression(expr, xv);
+      if (yv == null) continue;
+      points.push([xv, yv]);
+      yMin = Math.min(yMin, yv);
+      yMax = Math.max(yMax, yv);
+    }
+    if (!points.length) {
+      yMin = -1;
+      yMax = 1;
+    }
+    if (yMax === yMin) {
+      yMin -= 1;
+      yMax += 1;
+    }
+    const yPad = (yMax - yMin) * 0.08;
+    yMin -= yPad;
+    yMax += yPad;
+    return { points, w, h, xMin, xMax, yMin, yMax, expr };
+  }
+
+  function paintPlotPreview(canvas, cmd) {
+    const sample = samplePlot(cmd);
+    const dpr = 2;
+    canvas.width = sample.w * dpr;
+    canvas.height = sample.h * dpr;
+    const ctx = canvas.getContext("2d");
+    ctx.scale(dpr, dpr);
+    ctx.fillStyle = "rgba(255,255,255,0.55)";
+    ctx.fillRect(0, 0, sample.w, sample.h);
+    ctx.strokeStyle = "rgba(36,25,16,0.35)";
+    ctx.strokeRect(0.5, 0.5, sample.w - 1, sample.h - 1);
+    const mapX = (x) => ((x - sample.xMin) / (sample.xMax - sample.xMin)) * sample.w;
+    const mapY = (y) => sample.h - ((y - sample.yMin) / (sample.yMax - sample.yMin)) * sample.h;
+    ctx.strokeStyle = "#1f3d2e";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    sample.points.forEach(([x, y], i) => {
+      const px = mapX(x);
+      const py = mapY(y);
+      if (i === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    });
+    ctx.stroke();
+    return { w: sample.w, h: sample.h };
+  }
+
+  function commitPlot(cmd, worldX, worldY, scale = 1) {
+    const sample = samplePlot(cmd);
+    const w = sample.w * scale;
+    const h = sample.h * scale;
+    const mapX = (x) => worldX + ((x - sample.xMin) / (sample.xMax - sample.xMin)) * w;
+    const mapY = (y) => worldY + h - ((y - sample.yMin) / (sample.yMax - sample.yMin)) * h;
+    let prev = null;
+    for (const [x, y] of sample.points) {
+      const px = mapX(x);
+      const py = mapY(y);
+      if (prev) strokeToTiles(prev.x, prev.y, px, py, 3, "#1f3d2e");
+      prev = { x: px, y: py };
+    }
+    expandDirty(worldX, worldY, worldX + w, worldY + h, 8);
     render();
   }
 
@@ -314,14 +474,25 @@ export function createCanvasApp({ stage, tileCanvas, inkCanvas, onStrokeEnd, onS
   }
 
   function buildAtlas() {
-    if (!dirty && !latestInput) return null;
-    const box = dirty || {
-      minX: latestInput.x,
-      minY: latestInput.y,
-      maxX: latestInput.x + latestInput.w,
-      maxY: latestInput.y + latestInput.h,
-    };
-    // Keep the atlas small — large PNGs make OpenRouter + Vercel time out
+    const focus = selectionFocus;
+    const box = focus
+      ? {
+          minX: focus.x,
+          minY: focus.y,
+          maxX: focus.x + focus.w,
+          maxY: focus.y + focus.h,
+        }
+      : dirty ||
+        (latestInput
+          ? {
+              minX: latestInput.x,
+              minY: latestInput.y,
+              maxX: latestInput.x + latestInput.w,
+              maxY: latestInput.y + latestInput.h,
+            }
+          : null);
+    if (!box && !latestInput) return null;
+
     const pad = 100;
     const originX = Math.max(0, Math.floor(box.minX - pad));
     const originY = Math.max(0, Math.floor(box.minY - pad));
@@ -335,18 +506,36 @@ export function createCanvasApp({ stage, tileCanvas, inkCanvas, onStrokeEnd, onS
     atlas.width = outW;
     atlas.height = outH;
     const ctx = atlas.getContext("2d");
-    ctx.fillStyle = "#f2e6c9";
+    ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, outW, outH);
+    ctx.save();
     ctx.scale(scale, scale);
     ctx.translate(-originX, -originY);
+    // Context ink faded; latest region full strength (PenEcho-like attention)
+    ctx.globalAlpha = 0.42;
     for (const tile of tiles.values()) {
       ctx.drawImage(tile.canvas, tile.tx * TILE, tile.ty * TILE);
     }
+    if (latestInput && !focus) {
+      ctx.globalAlpha = 1;
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(latestInput.x - 8, latestInput.y - 8, latestInput.w + 16, latestInput.h + 16);
+      ctx.clip();
+      for (const tile of tiles.values()) {
+        ctx.drawImage(tile.canvas, tile.tx * TILE, tile.ty * TILE);
+      }
+      ctx.restore();
+    } else {
+      ctx.globalAlpha = 1;
+    }
+    ctx.restore();
 
     const hotspots = Array.from({ length: 8 }, () => Array(8).fill(0));
-    if (latestInput) {
-      const hx = Math.min(7, Math.max(0, Math.floor(((latestInput.x - originX) / width) * 8)));
-      const hy = Math.min(7, Math.max(0, Math.floor(((latestInput.y - originY) / height) * 8)));
+    const hotspotSource = focus || latestInput;
+    if (hotspotSource) {
+      const hx = Math.min(7, Math.max(0, Math.floor(((hotspotSource.x - originX) / width) * 8)));
+      const hy = Math.min(7, Math.max(0, Math.floor(((hotspotSource.y - originY) / height) * 8)));
       hotspots[hy][hx] = 1;
     }
 
@@ -359,7 +548,7 @@ export function createCanvasApp({ stage, tileCanvas, inkCanvas, onStrokeEnd, onS
         originY,
         width,
         height,
-        latestInput,
+        latestInput: focus || latestInput,
         hotspots,
       },
     };
@@ -519,6 +708,11 @@ export function createCanvasApp({ stage, tileCanvas, inkCanvas, onStrokeEnd, onS
     burnWorldText,
     drawVectorCommand,
     drawMark,
+    eraseRegion,
+    paintPlotPreview,
+    commitPlot,
+    setSelectionFocus,
+    getSelectionFocus,
     worldToScreen,
     screenToWorld,
     getView,
@@ -526,6 +720,10 @@ export function createCanvasApp({ stage, tileCanvas, inkCanvas, onStrokeEnd, onS
     centerView,
     render,
     getLatestInput: () => latestInput,
+    getTool: () => tool,
+    tiles,
+    ensureTile,
+    TILE,
     CANVAS_W,
     CANVAS_H,
   };

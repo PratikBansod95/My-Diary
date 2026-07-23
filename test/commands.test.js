@@ -9,20 +9,22 @@ test("extractJsonObject handles fenced JSON", () => {
   assert.deepEqual(obj, { commands: [] });
 });
 
-test("normalizeCommands validates write_text and games", () => {
+test("normalizeCommands keeps drafts and soft-disables games", () => {
   const commands = normalizeCommands({
     commands: [
-      { type: "write_text", x: 10, y: 20, text: "Hello" },
+      { type: "write_text", x: 10, y: 20, text: "Hello", fontSize: 40, maxWidth: 400 },
       { type: "start_game", x: 1, y: 2, game: "tic_tac_toe" },
       { type: "place_mark", x: 50, y: 60, symbol: "O", size: 70 },
+      { type: "plot_function", x: 0, y: 0, expression: "sin(x)", w: 400, h: 200 },
+      { type: "erase", x: 10, y: 10, w: 50, h: 50 },
       { type: "write_text", x: -5, y: 999999, text: "" },
     ],
   });
   assert.equal(commands.length, 3);
   assert.equal(commands[0].text, "Hello");
-  assert.equal(commands[1].game, "tic_tac_toe");
-  assert.equal(commands[2].type, "place_mark");
-  assert.equal(commands[2].symbol, "O");
+  assert.equal(commands[0].fontSize, 40);
+  assert.equal(commands[1].type, "plot_function");
+  assert.equal(commands[2].type, "erase");
 });
 
 test("parseGameMove tic-tac-toe", () => {

@@ -43,14 +43,18 @@ export async function testConnection() {
 }
 
 const STORAGE_KEY = "my-dairy-settings";
-const DEFAULTS = { autoDelay: 2 };
+const DEFAULTS = { autoDelay: 2, uiTheme: "arcane" };
 
 export function loadSettings() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return { ...DEFAULTS };
     const parsed = JSON.parse(raw);
-    return { ...DEFAULTS, autoDelay: parsed.autoDelay ?? DEFAULTS.autoDelay };
+    return {
+      ...DEFAULTS,
+      autoDelay: parsed.autoDelay ?? DEFAULTS.autoDelay,
+      uiTheme: parsed.uiTheme || DEFAULTS.uiTheme,
+    };
   } catch {
     return { ...DEFAULTS };
   }

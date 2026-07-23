@@ -171,8 +171,11 @@ body {
   pointer-events: none;
 }
 
-.overlay-layer > *,
-.draft-layer > * {
+.draft-layer {
+  pointer-events: none;
+}
+
+.draft-layer > .draft-pending {
   pointer-events: auto;
 }
 
@@ -450,6 +453,115 @@ body {
   font-size: 1.15rem;
   line-height: 1.35;
   pointer-events: none;
+}
+
+.draft-item.draft-pending {
+  pointer-events: auto;
+  padding: 8px 10px 14px;
+  background: rgba(255, 248, 230, 0.72);
+  border: 1px dashed rgba(31, 61, 46, 0.45);
+  border-radius: 2px;
+  box-shadow: 0 6px 18px rgba(40, 28, 12, 0.1);
+  z-index: 8;
+  cursor: grab;
+  font-size: var(--draft-font, 1.15rem);
+  color: var(--ink-diary);
+  max-width: none;
+}
+
+.draft-chrome {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 6px;
+  pointer-events: auto;
+}
+
+.draft-keep,
+.draft-discard,
+.draft-resize {
+  appearance: none;
+  border: 1px solid rgba(36, 25, 16, 0.28);
+  background: rgba(255, 255, 255, 0.65);
+  color: #241910;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 600;
+  min-height: 32px;
+  padding: 0 0.65rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.draft-keep {
+  background: rgba(61, 106, 82, 0.2);
+}
+
+.draft-discard {
+  background: rgba(122, 46, 36, 0.12);
+}
+
+.draft-body {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  pointer-events: auto;
+  touch-action: none;
+}
+
+.draft-resize {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  min-width: 28px;
+  padding: 0;
+}
+
+.draft-draw .draft-body canvas {
+  display: block;
+  max-width: 100%;
+}
+
+.theme-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #f0e2c4;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+}
+
+.theme-control select {
+  appearance: none;
+  border: 1px solid rgba(240, 226, 196, 0.22);
+  background: #2a1d13;
+  color: #f0e2c4;
+  font-family: var(--font-body);
+  min-height: 40px;
+  padding: 0 0.5rem;
+  border-radius: 8px;
+}
+
+.lasso-bar {
+  position: absolute;
+  z-index: 9;
+  display: flex;
+  gap: 6px;
+  padding: 6px 8px;
+  background: rgba(244, 236, 214, 0.94);
+  border: 1px solid rgba(36, 25, 16, 0.25);
+  border-radius: 8px;
+  pointer-events: auto;
+}
+
+.lasso-bar button {
+  appearance: none;
+  border: 1px solid rgba(36, 25, 16, 0.25);
+  background: rgba(255, 255, 255, 0.7);
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  min-height: 32px;
+  padding: 0 0.55rem;
+  border-radius: 6px;
+  cursor: pointer;
 }
 
 .draft-formula {

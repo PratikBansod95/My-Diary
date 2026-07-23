@@ -32,18 +32,38 @@ export function normalizeCommands(payload) {
   const commands = [];
   for (const item of list.slice(0, 24)) {
     if (!item || typeof item !== "object") continue;
-    const type = String(item.type || "");
+    const type = String(item.type || item.tool || "");
     const x = clamp(Math.round(num(item.x)), 0, CANVAS_W - 1);
     const y = clamp(Math.round(num(item.y)), 0, CANVAS_H - 1);
 
     if (type === "write_text") {
       const text = String(item.text || "").trim().slice(0, 4000);
-      if (text) commands.push({ type, x, y, text });
+      if (!text) continue;
+      const fontSize = clamp(Math.round(num(item.fontSize, 48)), 18, 200);
+      const maxWidth = clamp(Math.round(num(item.maxWidth, fontSize * 12)), fontSize, 2000);
+      commands.push({ type, x, y, text, fontSize, maxWidth });
       continue;
     }
     if (type === "draw_formula") {
       const latex = String(item.latex || item.text || "").trim().slice(0, 2000);
-      if (latex) commands.push({ type, x, y, latex });
+      if (!latex) continue;
+      const fontSize = clamp(Math.round(num(item.fontSize, 48)), 18, 200);
+      commands.push({ type, x, y, latex, fontSize });
+      continue;
+    }
+    if (type === "plot_function") {
+      const expression = String(item.expression || item.expr || "").trim().slice(0, 200);
+      if (!expression) continue;
+      commands.push({
+        type,
+        x,
+        y,
+        w: clamp(Math.round(num(item.w, 480)), 120, 1400),
+        h: clamp(Math.round(num(item.h, 320)), 100, 1000),
+        expression,
+        xMin: num(item.xMin, -5),
+        xMax: num(item.xMax, 5),
+      });
       continue;
     }
     if (type === "draw") {
@@ -60,24 +80,22 @@ export function normalizeCommands(payload) {
       if (normalized.length) commands.push({ type, x, y, items: normalized });
       continue;
     }
-    if (type === "start_game") {
-      const game = String(item.game || item.gameType || "").toLowerCase();
-      if (game === "tic_tac_toe" || game === "hangman") {
-        commands.push({ type, x, y, game });
+    if (type === "erase") {
+      const w = Math.round(num(item.w));
+      const h = Math.round(num(item.h));
+      if (w > 0 && h > 0) {
+        commands.push({ type, x, y, w, h });
+      } else if (Array.isArray(item.points) && item.points.length >= 4) {
+        commands.push({
+          type,
+          points: item.points.map((p) => Math.round(num(p))).slice(0, 64),
+          width: clamp(Math.round(num(item.width, 24)), 8, 80),
+        });
       }
       continue;
     }
-    if (type === "place_mark" || type === "mark") {
-      const raw = String(item.symbol || item.mark || "O").trim().toLowerCase();
-      let symbol = raw;
-      if (raw === "x" || raw === "o") symbol = raw.toUpperCase();
-      else if (raw === "heart" || raw === "♥" || raw === "❤" || raw === "love") symbol = "heart";
-      else if (raw.length === 1 && (raw === "x" || raw === "o")) symbol = raw.toUpperCase();
-      else continue;
-      if (symbol !== "X" && symbol !== "O" && symbol !== "heart") continue;
-      const size = clamp(Math.round(num(item.size, 80)), 24, 220);
-      commands.push({ type: "place_mark", x, y, symbol, size });
-    }
+    // Soft-disable games for PenEcho-core milestone
+    if (type === "start_game" || type === "place_mark" || type === "mark") continue;
   }
   return commands;
 }
