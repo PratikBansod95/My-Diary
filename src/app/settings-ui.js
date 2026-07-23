@@ -54,7 +54,13 @@ export function createSettingsUI({ dialog, onSave }) {
       testResult.textContent = `Connected · ${data.provider} · ${data.model}`;
     } catch (error) {
       testResult.classList.add("error");
-      testResult.textContent = error.message || "Connection failed";
+      const message = error.message || "Connection failed";
+      if (/quota|rate limit|429/i.test(message)) {
+        testResult.textContent =
+          "Quota exceeded for this key/model. Wait a moment or switch model, then try Test again.";
+      } else {
+        testResult.textContent = message.length > 280 ? `${message.slice(0, 280)}…` : message;
+      }
     }
   });
 

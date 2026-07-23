@@ -26,7 +26,9 @@ html,
 body {
   margin: 0;
   height: 100%;
+  width: 100%;
   overflow: hidden;
+  overscroll-behavior: none;
   background: radial-gradient(120% 80% at 50% 20%, #3a2a1c 0%, #1a1410 55%, #0d0a08 100%);
   color: var(--ink);
   font-family: var(--font-body);
@@ -201,7 +203,20 @@ body {
   border: none;
   padding: 0;
   background: transparent;
-  max-width: min(440px, calc(100vw - 24px));
+  width: min(480px, calc(100vw - 32px));
+  max-width: calc(100vw - 32px);
+  max-height: min(90vh, 760px);
+  margin: auto;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.cover-dialog[open],
+.sheet-dialog[open] {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  transform: none;
 }
 
 .cover-dialog::backdrop,
@@ -214,8 +229,15 @@ body {
 .sheet-panel {
   display: grid;
   gap: 12px;
-  padding: 22px 22px 18px;
+  width: 100%;
+  max-width: 100%;
+  max-height: min(90vh, 760px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 20px 18px 16px;
   border-radius: 16px;
+  box-sizing: border-box;
   background:
     radial-gradient(ellipse at 30% 0%, rgba(255, 255, 255, 0.16), transparent 50%),
     linear-gradient(160deg, #e7d7b8, #d2bc94);
@@ -229,19 +251,29 @@ body {
   margin: 0;
   font-family: var(--font-brand);
   font-weight: 400;
-  font-size: 2rem;
+  font-size: clamp(1.45rem, 5vw, 2rem);
+  line-height: 1.15;
+  overflow-wrap: anywhere;
 }
 
 .cover-note {
   margin: 0;
   font-style: italic;
   opacity: 0.8;
+  line-height: 1.35;
+  overflow-wrap: break-word;
 }
 
 .provider-tabs {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: 1fr;
   gap: 6px;
+}
+
+@media (min-width: 420px) {
+  .provider-tabs {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 .provider-tab {
@@ -251,7 +283,12 @@ body {
   background: rgba(255, 255, 255, 0.25);
   font-family: var(--font-body);
   font-weight: 600;
+  font-size: 0.92rem;
+  line-height: 1.2;
+  padding: 0.45rem 0.5rem;
+  white-space: normal;
   cursor: pointer;
+  min-width: 0;
 }
 
 .provider-tab.active {
@@ -265,16 +302,20 @@ body {
   display: grid;
   gap: 4px;
   font-weight: 600;
+  min-width: 0;
 }
 
 .cover-panel input,
 .cover-panel select {
+  width: 100%;
+  min-width: 0;
   min-height: 44px;
   border-radius: 10px;
   border: 1px solid rgba(36, 25, 16, 0.28);
   padding: 0 12px;
   font: inherit;
   background: rgba(255, 255, 255, 0.55);
+  box-sizing: border-box;
 }
 
 .cover-actions,
@@ -284,8 +325,18 @@ body {
 }
 
 .cover-actions {
-  grid-template-columns: 1fr 1.4fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr);
   margin-top: 4px;
+}
+
+.cover-actions .ghost,
+.cover-actions .primary {
+  min-width: 0;
+  width: 100%;
+  white-space: normal;
+  text-align: center;
+  line-height: 1.2;
+  padding: 0.55rem 0.65rem;
 }
 
 .hidden {
@@ -297,7 +348,12 @@ body {
   padding: 8px 10px;
   border-radius: 8px;
   background: rgba(47, 92, 69, 0.12);
-  font-size: 0.95rem;
+  font-size: 0.88rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  max-height: 160px;
+  overflow-y: auto;
 }
 
 .test-result.error {
