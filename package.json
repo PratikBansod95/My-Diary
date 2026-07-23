@@ -1,0 +1,23 @@
+{
+  "name": "my-dairy",
+  "version": "1.0.0",
+  "private": true,
+  "description": "An enchanted ink diary that answers beside your writing",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host",
+    "build": "vite build",
+    "preview": "vite preview --host",
+    "test": "node --test test/commands.test.js",
+    "check": "node --check server/ai-handler.js && node --check src/ai/commands.js && npm test"
+  },
+  "engines": {
+    "node": ">=18.17.0"
+  },
+  "devDependencies": {
+    "vite": "^6.3.5"
+  },
+  "dependencies": {
+    "katex": "^0.16.22"
+  }
+}

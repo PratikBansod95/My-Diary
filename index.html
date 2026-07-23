@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="theme-color" content="#1a1410" />
+    <title>My Dairy</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=IM+Fell+English:ital@0;1&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <header class="brand-bar" aria-label="My Dairy">
+        <h1 class="brand">My Dairy</h1>
+        <p class="brand-whisper" id="statusLine">The page listens when the ink settles.</p>
+      </header>
+
+      <main class="stage" id="stage">
+        <div class="page-shell" id="pageShell">
+          <canvas id="tileCanvas" aria-label="Confirmed ink"></canvas>
+          <canvas id="inkCanvas" aria-label="Drawing surface"></canvas>
+          <div id="overlayLayer" class="overlay-layer"></div>
+          <div id="draftLayer" class="draft-layer"></div>
+        </div>
+      </main>
+
+      <nav class="toolbar" id="toolbar" aria-label="Tools">
+        <button type="button" class="tool active" data-tool="pen" title="Pen">Pen</button>
+        <button type="button" class="tool" data-tool="eraser" title="Eraser">Erase</button>
+        <button type="button" class="tool" data-tool="pan" title="Pan">Pan</button>
+        <button type="button" class="action" id="askBtn" title="Ask the diary">Ask</button>
+        <label class="delay-control" title="Auto-ask delay">
+          <span>Auto</span>
+          <input type="range" id="autoDelay" min="0" max="10" step="1" value="2" />
+          <em id="autoDelayLabel">2s</em>
+        </label>
+        <button type="button" class="action" id="gamesBtn" title="Games">Games</button>
+        <button type="button" class="action" id="newPageBtn" title="New page">New</button>
+        <button type="button" class="action" id="exportBtn" title="Export PNG">Export</button>
+        <button type="button" class="action" id="settingsBtn" title="Settings">Key</button>
+      </nav>
+    </div>
+
+    <dialog class="cover-dialog" id="settingsDialog">
+      <form method="dialog" class="cover-panel" id="settingsForm">
+        <h2>Inscribe your key</h2>
+        <p class="cover-note">Your key stays in this browser and is sent only with your requests. Anyone with this device can use it.</p>
+
+        <div class="provider-tabs" role="tablist">
+          <button type="button" class="provider-tab active" data-provider="gemini">Gemini</button>
+          <button type="button" class="provider-tab" data-provider="openai">OpenAI-compatible</button>
+          <button type="button" class="provider-tab" data-provider="anthropic">Anthropic</button>
+        </div>
+
+        <label>
+          API key
+          <input type="password" id="apiKey" autocomplete="off" spellcheck="false" required />
+        </label>
+
+        <label id="baseUrlField" class="hidden">
+          Base URL
+          <input type="url" id="baseUrl" placeholder="https://api.openai.com/v1" />
+        </label>
+
+        <label>
+          Model
+          <input type="text" id="model" spellcheck="false" />
+        </label>
+
+        <label>
+          Effort
+          <select id="effort">
+            <option value="">Default</option>
+            <option value="none">None</option>
+            <option value="low">Low</option>
+            <option value="medium" selected>Medium</option>
+            <option value="high">High</option>
+          </select>
+        </label>
+
+        <p class="test-result" id="testResult" hidden></p>
+
+        <div class="cover-actions">
+          <button type="button" class="ghost" id="testKeyBtn">Test</button>
+          <button type="submit" class="primary" id="saveKeyBtn" value="save">Open the page</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="sheet-dialog" id="gamesDialog">
+      <form method="dialog" class="sheet-panel">
+        <h2>Play with the diary</h2>
+        <p>You move first. The diary answers on the board.</p>
+        <button type="submit" class="primary" value="tic_tac_toe">Tic-tac-toe</button>
+        <button type="submit" class="primary" value="hangman">Hangman</button>
+        <button type="submit" class="ghost" value="cancel">Close</button>
+      </form>
+    </dialog>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
