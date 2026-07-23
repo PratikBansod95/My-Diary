@@ -1,10 +1,9 @@
 import { createCanvasApp } from "./app/canvas.js";
 import { createDraftLayer } from "./app/drafts.js";
-import { createSettingsUI } from "./app/settings-ui.js";
 import { createToolbar } from "./app/toolbar.js";
 import { exportPagePng } from "./app/export.js";
 import { loadPage, savePage, clearPage } from "./app/persistence.js";
-import { askDiary, hasApiKey, loadSettings, saveSettings } from "./ai/client.js";
+import { askDiary, loadSettings, saveSettings } from "./ai/client.js";
 import { createGameMount } from "./games/mount.js";
 
 const statusLine = document.querySelector("#statusLine");
@@ -13,7 +12,6 @@ const tileCanvas = document.querySelector("#tileCanvas");
 const inkCanvas = document.querySelector("#inkCanvas");
 const draftRoot = document.querySelector("#draftLayer");
 const overlayRoot = document.querySelector("#overlayLayer");
-const settingsDialog = document.querySelector("#settingsDialog");
 const gamesDialog = document.querySelector("#gamesDialog");
 
 let settings = loadSettings();
@@ -36,7 +34,6 @@ const canvasApp = createCanvasApp({
 const games = createGameMount({
   root: overlayRoot,
   canvasApp,
-  getSettings: () => settings,
   onStatus: setStatus,
 });
 
@@ -47,28 +44,18 @@ const drafts = createDraftLayer({
   onStatus: setStatus,
 });
 
-const settingsUI = createSettingsUI({
-  dialog: settingsDialog,
-  onSave: (next) => {
-    settings = { ...settings, ...next };
-    setStatus("The clasp is sealed. Write when ready.");
-  },
-});
-
-const toolbar = createToolbar({
+createToolbar({
   root: document.querySelector("#toolbar"),
   onTool: (tool) => canvasApp.setTool(tool),
   onAsk: () => void askNow("manual"),
   onGames: () => gamesDialog.showModal(),
   onNewPage: () => void newPage(),
   onExport: () => void exportNow(),
-  onSettings: () => settingsUI.open(true),
   onAutoDelay: (value) => {
     autoDelay = value;
     settings = saveSettings({ autoDelay: value });
   },
-});
-toolbar.setDelay(autoDelay);
+}).setDelay(autoDelay);
 
 gamesDialog.addEventListener("close", () => {
   const value = gamesDialog.returnValue;
@@ -89,11 +76,6 @@ function scheduleAsk() {
 
 async function askNow(userAction) {
   if (asking) return;
-  if (!hasApiKey(settings)) {
-    settingsUI.open(true);
-    setStatus("Inscribe a key before the page can answer.");
-    return;
-  }
   const atlas = canvasApp.buildAtlas();
   if (!atlas) {
     setStatus("Write something first.");
@@ -102,15 +84,12 @@ async function askNow(userAction) {
   asking = true;
   setStatus("The diary reads your ink…");
   try {
-    const data = await askDiary(
-      {
-        mode: "canvas",
-        userAction,
-        atlasPngBase64: atlas.atlasPngBase64,
-        geometry: atlas.geometry,
-      },
-      settings
-    );
+    const data = await askDiary({
+      mode: "canvas",
+      userAction,
+      atlasPngBase64: atlas.atlasPngBase64,
+      geometry: atlas.geometry,
+    });
     canvasApp.consumeDirty();
     drafts.placeCommands(data.commands || []);
     setStatus(
@@ -176,6 +155,5 @@ window.addEventListener("beforeunload", () => {
 
 setInterval(() => void persist(), 8000);
 
-settingsUI.open(false);
 void restore();
 setStatus("The page listens when the ink settles.");

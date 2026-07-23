@@ -1,4 +1,13 @@
-export async function callOpenAI({ apiKey, model, baseUrl, effort, system, userText, imageBase64 }) {
+export async function callOpenAI({
+  apiKey,
+  model,
+  baseUrl,
+  effort,
+  system,
+  userText,
+  imageBase64,
+  extraHeaders = {},
+}) {
   const root = (baseUrl || "https://api.openai.com/v1").replace(/\/$/, "");
   const content = [{ type: "text", text: userText }];
   if (imageBase64) {
@@ -21,6 +30,7 @@ export async function callOpenAI({ apiKey, model, baseUrl, effort, system, userT
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${apiKey}`,
+      ...extraHeaders,
     },
     body: JSON.stringify(payload),
   });
@@ -33,3 +43,4 @@ export async function callOpenAI({ apiKey, model, baseUrl, effort, system, userT
   if (!text) throw new Error("OpenAI-compatible provider returned an empty response");
   return text;
 }
+

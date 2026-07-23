@@ -1,47 +1,32 @@
 import { DIARY_SYSTEM_PROMPT, GAME_MOVE_PROMPT, buildCanvasUserPrompt } from "../src/ai/prompt.js";
 import { extractJsonObject, normalizeCommands, parseGameMove } from "../src/ai/commands.js";
-import { DEFAULT_MODELS, DEFAULT_BASE_URLS } from "../src/shared/defaults.js";
-import { callGemini } from "../src/providers/gemini.js";
-import { callOpenAI } from "../src/providers/openai.js";
-import { callAnthropic } from "../src/providers/anthropic.js";
-import { callNvidia, NVIDIA_DEFAULT_BASE_URL } from "../src/providers/nvidia.js";
+import {
+  callOpenRouter,
+  OPENROUTER_DEFAULT_BASE_URL,
+  OPENROUTER_DEFAULT_MODEL,
+} from "../src/providers/openrouter.js";
 
 const MAX_BODY_BYTES = 6_500_000;
-const PROVIDERS = new Set(["gemini", "openai", "anthropic", "nvidia"]);
 
-function header(headers, name) {
-  const value = headers?.[name] ?? headers?.[name.toLowerCase()];
-  return typeof value === "string" ? value.trim() : "";
+function serverOpenRouterConfig() {
+  const apiKey = (process.env.OPENROUTER_API_KEY || "").trim();
+  if (!apiKey) {
+    throw Object.assign(
+      new Error("Server is missing OPENROUTER_API_KEY. Add it in Vercel env (or local .env)."),
+      { status: 503 }
+    );
+  }
+  return {
+    provider: "openrouter",
+    apiKey,
+    model: (process.env.OPENROUTER_MODEL || OPENROUTER_DEFAULT_MODEL).trim(),
+    baseUrl: (process.env.OPENROUTER_BASE_URL || OPENROUTER_DEFAULT_BASE_URL).trim(),
+    effort: "",
+  };
 }
 
-function readProviderConfig(headers) {
-  const provider = (header(headers, "x-provider") || "gemini").toLowerCase();
-  if (!PROVIDERS.has(provider)) {
-    throw Object.assign(new Error("Unsupported provider"), { status: 400 });
-  }
-  const apiKey = header(headers, "x-api-key");
-  if (!apiKey) throw Object.assign(new Error("Missing API key"), { status: 401 });
-  const model = header(headers, "x-model") || DEFAULT_MODELS[provider];
-  const baseUrl =
-    header(headers, "x-base-url") ||
-    (provider === "nvidia" ? NVIDIA_DEFAULT_BASE_URL : "") ||
-    DEFAULT_BASE_URLS[provider] ||
-    "";
-  const effort = header(headers, "x-effort") || "";
-  return { provider, apiKey, model, baseUrl, effort };
-}
-
-async function callProvider(config, { system, userText, imageBase64, jsonMode = true }) {
-  if (config.provider === "gemini") {
-    return callGemini({ ...config, system, userText, imageBase64, jsonMode });
-  }
-  if (config.provider === "openai") {
-    return callOpenAI({ ...config, system, userText, imageBase64 });
-  }
-  if (config.provider === "nvidia") {
-    return callNvidia({ ...config, system, userText, imageBase64 });
-  }
-  return callAnthropic({ ...config, system, userText, imageBase64 });
+async function callProvider(config, { system, userText, imageBase64 }) {
+  return callOpenRouter({ ...config, system, userText, imageBase64 });
 }
 
 function estimateBodyBytes(body) {
@@ -52,13 +37,12 @@ function estimateBodyBytes(body) {
   }
 }
 
-export async function handleTestRequest({ headers }) {
+export async function handleTestRequest() {
   try {
-    const config = readProviderConfig(headers);
+    const config = serverOpenRouterConfig();
     const text = await callProvider(config, {
       system: "Reply with JSON only.",
       userText: 'Return {"ok":true}',
-      jsonMode: true,
     });
     extractJsonObject(text);
     return { status: 200, body: { ok: true, provider: config.provider, model: config.model } };
@@ -67,12 +51,12 @@ export async function handleTestRequest({ headers }) {
   }
 }
 
-export async function handleAiRequest({ headers, body }) {
+export async function handleAiRequest({ body }) {
   try {
     if (estimateBodyBytes(body) > MAX_BODY_BYTES) {
       return { status: 413, body: { error: "Request too large" } };
     }
-    const config = readProviderConfig(headers);
+    const config = serverOpenRouterConfig();
     const mode = body?.mode || "canvas";
 
     if (mode === "game_move") {
@@ -81,7 +65,6 @@ export async function handleAiRequest({ headers, body }) {
       const text = await callProvider(config, {
         system: GAME_MOVE_PROMPT,
         userText,
-        jsonMode: true,
       });
       const move = parseGameMove(text, game);
       return { status: 200, body: { move } };
@@ -93,7 +76,6 @@ export async function handleAiRequest({ headers, body }) {
       const text = await callProvider(config, {
         system: GAME_MOVE_PROMPT,
         userText,
-        jsonMode: true,
       });
       const move = parseGameMove(text, "hangman");
       return { status: 200, body: { word: move.word } };
@@ -108,13 +90,15 @@ export async function handleAiRequest({ headers, body }) {
       system: DIARY_SYSTEM_PROMPT,
       userText,
       imageBase64,
-      jsonMode: true,
     });
     const commands = normalizeCommands(text);
-    return { status: 200, body: { commands, rawPreview: text.slice(0, 500) } };
+    return {
+      status: 200,
+      body: { commands, model: config.model, rawPreview: text.slice(0, 500) },
+    };
   } catch (error) {
     return { status: error.status || 500, body: { error: error.message || "AI request failed" } };
   }
 }
 
-export { DEFAULT_MODELS, callProvider, readProviderConfig };
+export { OPENROUTER_DEFAULT_MODEL };

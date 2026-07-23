@@ -1,17 +1,22 @@
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import { handleAiRequest, handleTestRequest } from "./server/ai-handler.js";
 
-function apiPlugin() {
+function apiPlugin(env) {
   return {
     name: "my-dairy-api",
     configureServer(server) {
+      // Make local .env available to the AI handler (same as Vercel env).
+      for (const [key, value] of Object.entries(env)) {
+        if (process.env[key] === undefined) process.env[key] = value;
+      }
+
       server.middlewares.use(async (req, res, next) => {
         const url = req.url?.split("?")[0];
         if (url !== "/api/ai" && url !== "/api/test") return next();
         if (req.method === "OPTIONS") {
           res.statusCode = 204;
           res.setHeader("Access-Control-Allow-Origin", "*");
-          res.setHeader("Access-Control-Allow-Headers", "Content-Type, x-api-key, x-provider, x-model, x-base-url, x-effort");
+          res.setHeader("Access-Control-Allow-Headers", "Content-Type");
           res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
           res.end();
           return;
@@ -27,17 +32,10 @@ function apiPlugin() {
           for await (const chunk of req) chunks.push(chunk);
           const raw = Buffer.concat(chunks).toString("utf8");
           const body = raw ? JSON.parse(raw) : {};
-          const headers = {
-            "x-api-key": req.headers["x-api-key"],
-            "x-provider": req.headers["x-provider"],
-            "x-model": req.headers["x-model"],
-            "x-base-url": req.headers["x-base-url"],
-            "x-effort": req.headers["x-effort"],
-          };
           const result =
             url === "/api/test"
-              ? await handleTestRequest({ headers, body })
-              : await handleAiRequest({ headers, body });
+              ? await handleTestRequest({ body })
+              : await handleAiRequest({ body });
           res.statusCode = result.status;
           res.setHeader("Content-Type", "application/json");
           res.setHeader("Access-Control-Allow-Origin", "*");
@@ -52,13 +50,16 @@ function apiPlugin() {
   };
 }
 
-export default defineConfig({
-  plugins: [apiPlugin()],
-  server: {
-    port: 5173,
-  },
-  build: {
-    outDir: "dist",
-    sourcemap: true,
-  },
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), "");
+  return {
+    plugins: [apiPlugin(env)],
+    server: {
+      port: 5173,
+    },
+    build: {
+      outDir: "dist",
+      sourcemap: true,
+    },
+  };
 });

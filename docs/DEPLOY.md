@@ -7,7 +7,9 @@ npm install
 npm run dev
 ```
 
-Open the printed URL (includes LAN address with `--host`) on your tablet. Enter a Gemini, OpenAI-compatible, Anthropic, or NVIDIA API key when prompted.
+Open the printed URL (includes LAN address with `--host`) on your tablet. The diary uses the server-side OpenRouter key — no browser popup.
+
+For local AI calls, copy `.env.example` to `.env` and set `OPENROUTER_API_KEY`.
 
 ```bash
 npm run check   # syntax + unit tests
@@ -20,9 +22,11 @@ npm run build   # production assets in dist/
 2. Import the project in [Vercel](https://vercel.com).
 3. Framework preset: Vite. Build command: `npm run build`. Output: `dist`.
 4. Root directory: repository root (where `package.json` lives).
-5. Deploy. No server env vars are required — users paste their own keys in the browser.
+5. Deploy. Set **`OPENROUTER_API_KEY`** in Vercel → Settings → Environment Variables (Production + Preview). Optional: `OPENROUTER_MODEL` (default `nvidia/nemotron-nano-12b-v2-vl:free`).
 
-The `/api/ai` and `/api/test` serverless functions proxy provider calls so browser CORS is not an issue. Keys are sent per request in headers and are never stored on the server.
+The `/api/ai` and `/api/test` serverless functions call OpenRouter with the server key. The browser never sees the key.
+
+**After adding or changing env vars, redeploy** so the new values load.
 
 ## Tablet + pen tips
 
@@ -35,11 +39,10 @@ The `/api/ai` and `/api/test` serverless functions proxy provider calls so brows
 
 ## Provider notes
 
-| Provider | Default model | Notes |
-|----------|---------------|--------|
-| Gemini | `gemini-2.0-flash` | Paste AI Studio / Gemini API key |
-| OpenAI-compatible | `gpt-4o-mini` | Set base URL for Kimi or other OpenAI-style APIs |
-| Anthropic | `claude-sonnet-4-20250514` | Anthropic API key |
-| NVIDIA Nemotron | `nvidia/llama-3.1-nemotron-nano-vl-8b-v1` | Key from [build.nvidia.com](https://build.nvidia.com); default base `https://integrate.api.nvidia.com/v1`. Prefer a **VL** (vision) Nemotron model so handwriting on the page can be read. |
+| Setting | Value |
+|---------|--------|
+| Provider | OpenRouter (server-side) |
+| Default model | `nvidia/nemotron-nano-12b-v2-vl:free` |
+| Env var | `OPENROUTER_API_KEY` |
 
-Change the model string in settings to any ID your account supports.
+Override the model with `OPENROUTER_MODEL` if needed. Prefer a **vision** (`vl` / omni) free model so handwriting on the page can be read.

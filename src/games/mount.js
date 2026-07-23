@@ -7,7 +7,7 @@ import {
 import { isWon, maskWord, MAX_MISSES } from "./hangman.js";
 import { askDiary } from "../ai/client.js";
 
-export function createGameMount({ root, canvasApp, getSettings, onStatus }) {
+export function createGameMount({ root, canvasApp, onStatus }) {
   const widgets = [];
 
   function sync() {
@@ -92,19 +92,16 @@ export function createGameMount({ root, canvasApp, getSettings, onStatus }) {
     async function diaryMove() {
       let index = null;
       try {
-        const data = await askDiary(
-          {
-            mode: "game_move",
-            game: "tic_tac_toe",
-            state: {
-              board: widget._state.board,
-              diaryMark: widget._state.diaryMark,
-              userMark: widget._state.userMark,
-            },
-            schema: '{"move":0-8}',
+        const data = await askDiary({
+          mode: "game_move",
+          game: "tic_tac_toe",
+          state: {
+            board: widget._state.board,
+            diaryMark: widget._state.diaryMark,
+            userMark: widget._state.userMark,
           },
-          getSettings()
-        );
+          schema: '{"move":0-8}',
+        });
         index = data.move?.index;
       } catch {
         index = null;
@@ -188,7 +185,7 @@ export function createGameMount({ root, canvasApp, getSettings, onStatus }) {
 
     if (!widget._state.word) {
       try {
-        const data = await askDiary({ mode: "hangman_word" }, getSettings());
+        const data = await askDiary({ mode: "hangman_word" });
         widget._state.word = String(data.word || "SHADOW").toUpperCase();
       } catch {
         widget._state.word = "SHADOW";

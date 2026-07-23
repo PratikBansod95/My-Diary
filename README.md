@@ -9,7 +9,7 @@ npm install
 npm run dev
 ```
 
-Open the local URL, inscribe your **Gemini**, **OpenAI-compatible**, **Anthropic**, or **NVIDIA Nemotron** API key, then write on the page.
+Open the local URL and write on the page. AI calls use **OpenRouter** with a server env key (`OPENROUTER_API_KEY`) and model `nvidia/nemotron-nano-12b-v2-vl:free` — no key popup.
 
 ## Features
 

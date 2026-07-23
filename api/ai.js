@@ -1,7 +1,3 @@
-/**
- * @param {import('@vercel/node').VercelRequest} req
- * @param {import('@vercel/node').VercelResponse} res
- */
 import { handleAiRequest } from "../server/ai-handler.js";
 
 export const config = {
@@ -15,10 +11,7 @@ export const config = {
 
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader(
-    "Access-Control-Allow-Headers",
-    "Content-Type, x-api-key, x-provider, x-model, x-base-url, x-effort"
-  );
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
 
   if (req.method === "OPTIONS") {
@@ -39,6 +32,6 @@ export default async function handler(req, res) {
     }
   }
 
-  const result = await handleAiRequest({ headers: req.headers, body: body || {} });
+  const result = await handleAiRequest({ body: body || {} });
   res.status(result.status).json(result.body);
 }

@@ -40,56 +40,8 @@
         <button type="button" class="action" id="gamesBtn" title="Games">Games</button>
         <button type="button" class="action" id="newPageBtn" title="New page">New</button>
         <button type="button" class="action" id="exportBtn" title="Export PNG">Export</button>
-        <button type="button" class="action" id="settingsBtn" title="Settings">Key</button>
       </nav>
     </div>
-
-    <dialog class="cover-dialog" id="settingsDialog">
-      <form method="dialog" class="cover-panel" id="settingsForm">
-        <h2>Inscribe your key</h2>
-        <p class="cover-note">Your key stays in this browser and is sent only with your requests. Anyone with this device can use it.</p>
-
-        <div class="provider-tabs" role="tablist">
-          <button type="button" class="provider-tab active" data-provider="gemini">Gemini</button>
-          <button type="button" class="provider-tab" data-provider="openai">OpenAI-compatible</button>
-          <button type="button" class="provider-tab" data-provider="anthropic">Anthropic</button>
-          <button type="button" class="provider-tab" data-provider="nvidia">NVIDIA Nemotron</button>
-        </div>
-
-        <label>
-          API key
-          <input type="password" id="apiKey" autocomplete="off" spellcheck="false" required />
-        </label>
-
-        <label id="baseUrlField" class="hidden">
-          Base URL
-          <input type="url" id="baseUrl" placeholder="https://api.openai.com/v1" />
-        </label>
-
-        <label>
-          Model
-          <input type="text" id="model" spellcheck="false" />
-        </label>
-
-        <label>
-          Effort
-          <select id="effort">
-            <option value="">Default</option>
-            <option value="none">None</option>
-            <option value="low">Low</option>
-            <option value="medium" selected>Medium</option>
-            <option value="high">High</option>
-          </select>
-        </label>
-
-        <p class="test-result" id="testResult" hidden></p>
-
-        <div class="cover-actions">
-          <button type="button" class="ghost" id="testKeyBtn">Test</button>
-          <button type="submit" class="primary" id="saveKeyBtn" value="save">Open the page</button>
-        </div>
-      </form>
-    </dialog>
 
     <dialog class="sheet-dialog" id="gamesDialog">
       <form method="dialog" class="sheet-panel">
