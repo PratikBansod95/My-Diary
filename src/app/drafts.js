@@ -7,7 +7,6 @@ export function estimateHandwritingSize(anchor) {
   if (!anchor) return 64;
   const w = Math.max(Number(anchor.w) || 0, 24);
   const h = Math.max(Number(anchor.h) || 0, 24);
-  // Multi-line blocks are taller than a single line; split height into lines.
   const aspect = h / w;
   const lines = aspect > 0.75 ? Math.max(2, Math.min(5, Math.round(h / Math.max(w * 0.28, 50)))) : 1;
   const letter = h / lines;
@@ -15,8 +14,7 @@ export function estimateHandwritingSize(anchor) {
 }
 
 /**
- * Diary replies stay on the page as living ink overlays (no Keep/Discard),
- * sized to match the user's handwriting, synced to pan/zoom.
+ * Diary replies as living ink overlays only (no Keep/Discard, no double burn).
  */
 export function createDraftLayer({ root, canvasApp, onAcceptGame, onStatus }) {
   const replies = [];
@@ -28,22 +26,17 @@ export function createDraftLayer({ root, canvasApp, onAcceptGame, onStatus }) {
   }
 
   function resolvePosition(cmd, anchor, fontSize) {
-    let x = Number(cmd.x) || 0;
-    let y = Number(cmd.y) || 0;
+    const gap = Math.round(fontSize * 0.45);
     if (anchor) {
-      const ax = anchor.x ?? 0;
-      const ay = anchor.y ?? 0;
-      const aw = anchor.w ?? 40;
-      const ah = anchor.h ?? 40;
-      const far = Math.abs(x - ax) > 1800 || Math.abs(y - ay) > 1800 || x < 0 || y < 0;
-      if (far || (x === 0 && y === 0)) {
-        x = Math.round(ax + Math.max(aw, 40) + fontSize * 0.4);
-        y = Math.round(ay);
-      }
+      // Always sit below the user's marks to avoid covering their ink.
+      const x = Math.round(anchor.x ?? cmd.x ?? 0);
+      const y = Math.round((anchor.y || 0) + (anchor.h || fontSize) + gap);
+      return { x, y };
     }
-    if (anchor && Math.abs(y - (anchor.y || 0)) < fontSize * 0.4) {
-      y = Math.round((anchor.y || 0) + (anchor.h || fontSize) + fontSize * 0.35);
-    }
+    let x = Number(cmd.x) || 40;
+    let y = Number(cmd.y) || 40;
+    if (x < 0) x = 40;
+    if (y < 0) y = 40;
     return { x, y };
   }
 
@@ -91,17 +84,39 @@ export function createDraftLayer({ root, canvasApp, onAcceptGame, onStatus }) {
   async function placeCommands(commands, anchor = null) {
     const fontSize = estimateHandwritingSize(anchor);
     let firstWorld = null;
+    let startedGame = false;
+
     for (const cmd of commands) {
+      // Ignore accidental games when the user only wrote short chat (no board intent).
+      if (cmd.type === "start_game") {
+        const chatOnly =
+          anchor &&
+          (anchor.h || 0) < 900 &&
+          (anchor.w || 0) < 1600 &&
+          !commands.some((c) => c.type === "place_mark");
+        // Still allow start_game if model insists, but if there's also write_text for hello-style
+        // and no place_mark, prefer chat: skip game when multiple write_texts dominate.
+        const textCmds = commands.filter((c) => c.type === "write_text");
+        const looksLikeGreeting = textCmds.some((c) =>
+          /hello|hi\b|hey|how are you|thanks|thank you/i.test(c.text || "")
+        );
+        if (looksLikeGreeting && chatOnly) continue;
+        if (startedGame) continue;
+        startedGame = true;
+        const pos = resolvePosition(cmd, anchor, fontSize);
+        cmd.x = pos.x;
+        cmd.y = pos.y;
+        onAcceptGame?.(cmd);
+        if (!firstWorld) firstWorld = { ...pos };
+        continue;
+      }
+
       const pos = resolvePosition(cmd, anchor, fontSize);
       cmd.x = pos.x;
       cmd.y = pos.y;
       cmd.fontSize = fontSize;
       if (!firstWorld) firstWorld = { ...pos };
 
-      if (cmd.type === "start_game") {
-        onAcceptGame?.(cmd);
-        continue;
-      }
       if (cmd.type === "place_mark") {
         const markSize = Math.round(fontSize * 1.15);
         canvasApp.drawMark(cmd.symbol, cmd.x, cmd.y, cmd.size || markSize);
@@ -112,10 +127,8 @@ export function createDraftLayer({ root, canvasApp, onAcceptGame, onStatus }) {
         continue;
       }
       if (cmd.type === "write_text" || cmd.type === "draw_formula") {
+        // Overlay only — burning the same text caused the double/overlapping ink.
         mountReply(cmd);
-        if (cmd.type === "write_text" && cmd.text) {
-          canvasApp.burnWorldText(cmd.text, cmd.x, cmd.y, { fontSize });
-        }
       }
     }
     syncPositions();
