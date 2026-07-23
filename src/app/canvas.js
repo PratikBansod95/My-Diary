@@ -321,13 +321,13 @@ export function createCanvasApp({ stage, tileCanvas, inkCanvas, onStrokeEnd, onS
       maxX: latestInput.x + latestInput.w,
       maxY: latestInput.y + latestInput.h,
     };
-    // Wider pad so doodles/hearts keep page context for vision
-    const pad = 140;
+    // Keep the atlas small — large PNGs make OpenRouter + Vercel time out
+    const pad = 100;
     const originX = Math.max(0, Math.floor(box.minX - pad));
     const originY = Math.max(0, Math.floor(box.minY - pad));
     const width = Math.min(CANVAS_W - originX, Math.ceil(box.maxX - originX + pad));
     const height = Math.min(CANVAS_H - originY, Math.ceil(box.maxY - originY + pad));
-    const maxSide = 1280;
+    const maxSide = 720;
     const scale = Math.min(1, maxSide / Math.max(width, height, 1));
     const outW = Math.max(1, Math.round(width * scale));
     const outH = Math.max(1, Math.round(height * scale));
@@ -351,7 +351,7 @@ export function createCanvasApp({ stage, tileCanvas, inkCanvas, onStrokeEnd, onS
     }
 
     return {
-      atlasPngBase64: atlas.toDataURL("image/png"),
+      atlasPngBase64: atlas.toDataURL("image/jpeg", 0.72),
       geometry: {
         canvasWidth: CANVAS_W,
         canvasHeight: CANVAS_H,

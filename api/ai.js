@@ -3,10 +3,10 @@ import { handleAiRequest } from "../server/ai-handler.js";
 export const config = {
   api: {
     bodyParser: {
-      sizeLimit: "6mb",
+      sizeLimit: "4mb",
     },
   },
-  maxDuration: 120,
+  maxDuration: 60,
 };
 
 export default async function handler(req, res) {

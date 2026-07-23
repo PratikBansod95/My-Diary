@@ -156,7 +156,14 @@ async function askNow(userAction) {
     );
     await persist();
   } catch (error) {
-    setStatus(error.message || "The diary could not answer.", { error: true });
+    const raw = error.message || "The diary could not answer.";
+    const timedOut = /504|timeout|FUNCTION_INVOCATION|took too long/i.test(raw);
+    setStatus(
+      timedOut
+        ? "Timed out waiting for the model. Free models often queue — set OPENROUTER_MODEL to google/gemini-2.0-flash-001 on Vercel, then try Speak again."
+        : raw,
+      { error: true }
+    );
   } finally {
     asking = false;
   }

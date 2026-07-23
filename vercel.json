@@ -4,11 +4,11 @@
   ],
   "functions": {
     "api/ai.js": {
-      "maxDuration": 120,
+      "maxDuration": 60,
       "memory": 1024
     },
     "api/test.js": {
-      "maxDuration": 30,
+      "maxDuration": 20,
       "memory": 512
     }
   }
