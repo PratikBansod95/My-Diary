@@ -9,7 +9,7 @@ npm install
 npm run dev
 ```
 
-Open the local URL, inscribe your **Gemini**, **OpenAI-compatible**, or **Anthropic** API key, then write on the page.
+Open the local URL, inscribe your **Gemini**, **OpenAI-compatible**, **Anthropic**, or **NVIDIA Nemotron** API key, then write on the page.
 
 ## Features
 

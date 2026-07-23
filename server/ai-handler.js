@@ -1,11 +1,13 @@
 import { DIARY_SYSTEM_PROMPT, GAME_MOVE_PROMPT, buildCanvasUserPrompt } from "../src/ai/prompt.js";
 import { extractJsonObject, normalizeCommands, parseGameMove } from "../src/ai/commands.js";
-import { DEFAULT_MODELS } from "../src/shared/defaults.js";
+import { DEFAULT_MODELS, DEFAULT_BASE_URLS } from "../src/shared/defaults.js";
 import { callGemini } from "../src/providers/gemini.js";
 import { callOpenAI } from "../src/providers/openai.js";
 import { callAnthropic } from "../src/providers/anthropic.js";
+import { callNvidia, NVIDIA_DEFAULT_BASE_URL } from "../src/providers/nvidia.js";
 
 const MAX_BODY_BYTES = 6_500_000;
+const PROVIDERS = new Set(["gemini", "openai", "anthropic", "nvidia"]);
 
 function header(headers, name) {
   const value = headers?.[name] ?? headers?.[name.toLowerCase()];
@@ -14,13 +16,17 @@ function header(headers, name) {
 
 function readProviderConfig(headers) {
   const provider = (header(headers, "x-provider") || "gemini").toLowerCase();
-  if (!["gemini", "openai", "anthropic"].includes(provider)) {
+  if (!PROVIDERS.has(provider)) {
     throw Object.assign(new Error("Unsupported provider"), { status: 400 });
   }
   const apiKey = header(headers, "x-api-key");
   if (!apiKey) throw Object.assign(new Error("Missing API key"), { status: 401 });
   const model = header(headers, "x-model") || DEFAULT_MODELS[provider];
-  const baseUrl = header(headers, "x-base-url") || "";
+  const baseUrl =
+    header(headers, "x-base-url") ||
+    (provider === "nvidia" ? NVIDIA_DEFAULT_BASE_URL : "") ||
+    DEFAULT_BASE_URLS[provider] ||
+    "";
   const effort = header(headers, "x-effort") || "";
   return { provider, apiKey, model, baseUrl, effort };
 }
@@ -31,6 +37,9 @@ async function callProvider(config, { system, userText, imageBase64, jsonMode = 
   }
   if (config.provider === "openai") {
     return callOpenAI({ ...config, system, userText, imageBase64 });
+  }
+  if (config.provider === "nvidia") {
+    return callNvidia({ ...config, system, userText, imageBase64 });
   }
   return callAnthropic({ ...config, system, userText, imageBase64 });
 }

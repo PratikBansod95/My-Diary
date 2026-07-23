@@ -1,4 +1,11 @@
-import { DEFAULT_MODELS, loadSettings, saveSettings, testConnection, hasApiKey } from "../ai/client.js";
+import {
+  DEFAULT_MODELS,
+  DEFAULT_BASE_URLS,
+  loadSettings,
+  saveSettings,
+  testConnection,
+  hasApiKey,
+} from "../ai/client.js";
 
 export function createSettingsUI({ dialog, onSave }) {
   const form = dialog.querySelector("#settingsForm");
@@ -15,7 +22,15 @@ export function createSettingsUI({ dialog, onSave }) {
   function applyDefaultsForProvider(next) {
     provider = next;
     tabs.forEach((tab) => tab.classList.toggle("active", tab.dataset.provider === next));
-    baseUrlField.classList.toggle("hidden", next !== "openai");
+    const showBase = next === "openai" || next === "nvidia";
+    baseUrlField.classList.toggle("hidden", !showBase);
+    if (showBase) {
+      const placeholder = DEFAULT_BASE_URLS[next] || "";
+      baseUrl.placeholder = placeholder;
+      if (!baseUrl.value.trim() || Object.values(DEFAULT_BASE_URLS).includes(baseUrl.value.trim())) {
+        baseUrl.value = placeholder;
+      }
+    }
     if (!model.value || Object.values(DEFAULT_MODELS).includes(model.value)) {
       model.value = DEFAULT_MODELS[next];
     }
@@ -29,7 +44,10 @@ export function createSettingsUI({ dialog, onSave }) {
     provider = settings.provider || "gemini";
     applyDefaultsForProvider(provider);
     apiKey.value = settings.apiKey || "";
-    baseUrl.value = settings.baseUrl || "";
+    baseUrl.value =
+      settings.baseUrl ||
+      (provider === "nvidia" || provider === "openai" ? DEFAULT_BASE_URLS[provider] : "") ||
+      "";
     model.value = settings.model || DEFAULT_MODELS[provider];
     effort.value = settings.effort || "medium";
     testResult.hidden = true;

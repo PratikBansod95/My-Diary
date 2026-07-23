@@ -1,4 +1,5 @@
 import { DEFAULT_MODELS } from "../shared/defaults.js";
+import { DEFAULT_BASE_URLS } from "../shared/defaults.js";
 
 const STORAGE_KEY = "my-dairy-settings";
 
@@ -38,8 +39,9 @@ export function providerHeaders(settings = loadSettings()) {
     "x-provider": settings.provider,
     "x-model": settings.model || DEFAULT_MODELS[settings.provider] || "",
   };
-  if (settings.provider === "openai" && settings.baseUrl) {
-    headers["x-base-url"] = settings.baseUrl.trim();
+  if (settings.provider === "openai" || settings.provider === "nvidia") {
+    const url = (settings.baseUrl || DEFAULT_BASE_URLS[settings.provider] || "").trim();
+    if (url) headers["x-base-url"] = url;
   }
   if (settings.effort) headers["x-effort"] = settings.effort;
   return headers;
@@ -71,4 +73,4 @@ export async function askDiary(payload, settings = loadSettings()) {
   return data;
 }
 
-export { DEFAULT_MODELS, STORAGE_KEY };
+export { DEFAULT_MODELS, DEFAULT_BASE_URLS, STORAGE_KEY };
