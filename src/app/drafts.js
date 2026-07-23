@@ -14,7 +14,8 @@ export function estimateHandwritingSize(anchor) {
 }
 
 /**
- * Diary replies as living ink overlays only (no Keep/Discard, no double burn).
+ * Diary replies as living ink overlays (no Keep/Discard).
+ * Feels like a friend answering beside your marks — not a chat bubble.
  */
 export function createDraftLayer({ root, canvasApp, onAcceptGame, onStatus }) {
   const replies = [];
@@ -25,19 +26,36 @@ export function createDraftLayer({ root, canvasApp, onAcceptGame, onStatus }) {
     root.innerHTML = "";
   }
 
-  function resolvePosition(cmd, anchor, fontSize) {
+  function recentMemory(limit = 6) {
+    return replies
+      .map((item) => item._cmd?.text)
+      .filter(Boolean)
+      .slice(-limit);
+  }
+
+  function resolvePosition(cmd, anchor, fontSize, stackIndex) {
     const gap = Math.round(fontSize * 0.45);
+    const stack = Math.round(stackIndex * fontSize * 1.35);
     if (anchor) {
-      // Always sit below the user's marks to avoid covering their ink.
       const x = Math.round(anchor.x ?? cmd.x ?? 0);
-      const y = Math.round((anchor.y || 0) + (anchor.h || fontSize) + gap);
+      const y = Math.round((anchor.y || 0) + (anchor.h || fontSize) + gap + stack);
       return { x, y };
     }
     let x = Number(cmd.x) || 40;
     let y = Number(cmd.y) || 40;
     if (x < 0) x = 40;
     if (y < 0) y = 40;
-    return { x, y };
+    return { x, y: y + stack };
+  }
+
+  /** Rough doodle (heart, face): leave room for a drawn reply beside/below */
+  function looksLikeDoodle(anchor) {
+    if (!anchor) return false;
+    const w = anchor.w || 0;
+    const h = anchor.h || 0;
+    if (w < 40 || h < 40) return false;
+    const aspect = w / Math.max(h, 1);
+    return aspect > 0.45 && aspect < 2.2 && w < 900 && h < 900;
   }
 
   function applyScreenSize(item) {
@@ -85,54 +103,117 @@ export function createDraftLayer({ root, canvasApp, onAcceptGame, onStatus }) {
     const fontSize = estimateHandwritingSize(anchor);
     let firstWorld = null;
     let startedGame = false;
+    let textStack = 0;
+    const doodle = looksLikeDoodle(anchor);
 
-    for (const cmd of commands) {
-      // Ignore accidental games when the user only wrote short chat (no board intent).
+    // Prefer starting ink-games before placing chat, so we can drop "app-y" game captions.
+    const ordered = [...commands].sort((a, b) => {
+      const rank = (c) => (c.type === "start_game" ? 0 : c.type === "place_mark" || c.type === "draw" ? 1 : 2);
+      return rank(a) - rank(b);
+    });
+
+    for (const cmd of ordered) {
       if (cmd.type === "start_game") {
+        const textCmds = commands.filter((c) => c.type === "write_text");
+        const looksLikeGreeting = textCmds.some((c) =>
+          /hello|hi\b|hey|how are you|thanks|thank you|love you|miss you|lonely|sad/i.test(c.text || "")
+        );
         const chatOnly =
           anchor &&
           (anchor.h || 0) < 900 &&
           (anchor.w || 0) < 1600 &&
           !commands.some((c) => c.type === "place_mark");
-        // Still allow start_game if model insists, but if there's also write_text for hello-style
-        // and no place_mark, prefer chat: skip game when multiple write_texts dominate.
-        const textCmds = commands.filter((c) => c.type === "write_text");
-        const looksLikeGreeting = textCmds.some((c) =>
-          /hello|hi\b|hey|how are you|thanks|thank you/i.test(c.text || "")
-        );
         if (looksLikeGreeting && chatOnly) continue;
         if (startedGame) continue;
         startedGame = true;
-        const pos = resolvePosition(cmd, anchor, fontSize);
-        cmd.x = pos.x;
-        cmd.y = pos.y;
-        onAcceptGame?.(cmd);
-        if (!firstWorld) firstWorld = { ...pos };
+        // Play on their marks — pass the ink box, never invent a floating widget.
+        onAcceptGame?.(cmd, anchor);
+        if (anchor && !firstWorld) {
+          firstWorld = { x: anchor.x, y: anchor.y + (anchor.h || 0) + 40 };
+        }
         continue;
       }
 
-      const pos = resolvePosition(cmd, anchor, fontSize);
-      cmd.x = pos.x;
-      cmd.y = pos.y;
-      cmd.fontSize = fontSize;
-      if (!firstWorld) firstWorld = { ...pos };
+      if (cmd.type === "write_text") {
+        // Drop plastic game-UI captions — the page already speaks in ink marks.
+        if (
+          startedGame &&
+          /tic-?tac-?toe|hangman|i('ll| will) go first|your move|starting a game/i.test(cmd.text || "")
+        ) {
+          continue;
+        }
+      }
 
       if (cmd.type === "place_mark") {
-        const markSize = Math.round(fontSize * 1.15);
-        canvasApp.drawMark(cmd.symbol, cmd.x, cmd.y, cmd.size || markSize);
+        // During a live board game, marks are placed by the parchment session — skip AI duplicates.
+        if (startedGame) continue;
+        const markSize = Math.round(cmd.size || fontSize * 1.15);
+        let mx = Number(cmd.x) || 0;
+        let my = Number(cmd.y) || 0;
+        if (anchor) {
+          mx = Math.round(anchor.x + (anchor.w || markSize) * 0.15);
+          my = Math.round(anchor.y + (anchor.h || markSize) + fontSize * 0.35);
+        }
+        canvasApp.drawMark(cmd.symbol, mx, my, markSize);
+        if (!firstWorld) firstWorld = { x: mx, y: my };
         continue;
       }
+
       if (cmd.type === "draw") {
-        canvasApp.drawVectorCommand(cmd);
+        if (startedGame) continue;
+        if (anchor && doodle) {
+          const items = (cmd.items || []).map((entry) => {
+            const shape = String(entry.shape || "").toLowerCase();
+            if (shape === "heart" && Array.isArray(entry.points)) {
+              const size = entry.points[2] || Math.round(fontSize * 1.4);
+              return {
+                ...entry,
+                points: [
+                  Math.round((anchor.w || size) * 0.35),
+                  Math.round(fontSize * 0.2),
+                  size,
+                ],
+              };
+            }
+            return entry;
+          });
+          canvasApp.drawVectorCommand({
+            x: Math.round(anchor.x),
+            y: Math.round(anchor.y + (anchor.h || fontSize) + fontSize * 0.25),
+            items,
+          });
+        } else {
+          canvasApp.drawVectorCommand(cmd);
+        }
+        if (!firstWorld && anchor) {
+          firstWorld = {
+            x: anchor.x,
+            y: anchor.y + (anchor.h || fontSize) + 20,
+          };
+        }
         continue;
       }
+
       if (cmd.type === "write_text" || cmd.type === "draw_formula") {
-        // Overlay only — burning the same text caused the double/overlapping ink.
+        const pos = resolvePosition(cmd, anchor, fontSize, textStack);
+        if (doodle && commands.some((c) => c.type === "draw" || c.type === "place_mark")) {
+          pos.y += Math.round(fontSize * 1.6);
+        }
+        // Keep captions clear of a drawn board
+        if (startedGame && anchor) {
+          pos.y = Math.round(anchor.y + (anchor.h || 0) + fontSize * 1.2 + textStack * fontSize * 1.3);
+          pos.x = Math.round(anchor.x);
+        }
+        cmd.x = pos.x;
+        cmd.y = pos.y;
+        cmd.fontSize = fontSize;
         mountReply(cmd);
+        textStack += 1;
+        if (!firstWorld) firstWorld = { ...pos };
       }
     }
     syncPositions();
-    onStatus?.("The diary wrote back.");
+    onStatus?.("Ink answered.");
     return firstWorld;
   }
 
@@ -159,5 +240,17 @@ export function createDraftLayer({ root, canvasApp, onAcceptGame, onStatus }) {
     syncPositions();
   }
 
-  return { clear, placeCommands, syncPositions, serialize, restore };
+  function addReply(text, x, y, fontSize = 48) {
+    if (!text) return;
+    mountReply({
+      type: "write_text",
+      text,
+      x: Math.round(x),
+      y: Math.round(y),
+      fontSize,
+    });
+    syncPositions();
+  }
+
+  return { clear, placeCommands, syncPositions, serialize, restore, addReply, recentMemory };
 }

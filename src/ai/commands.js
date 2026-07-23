@@ -68,11 +68,13 @@ export function normalizeCommands(payload) {
       continue;
     }
     if (type === "place_mark" || type === "mark") {
-      const symbol = String(item.symbol || item.mark || "O")
-        .trim()
-        .toUpperCase()
-        .slice(0, 1);
-      if (symbol !== "X" && symbol !== "O") continue;
+      const raw = String(item.symbol || item.mark || "O").trim().toLowerCase();
+      let symbol = raw;
+      if (raw === "x" || raw === "o") symbol = raw.toUpperCase();
+      else if (raw === "heart" || raw === "♥" || raw === "❤" || raw === "love") symbol = "heart";
+      else if (raw.length === 1 && (raw === "x" || raw === "o")) symbol = raw.toUpperCase();
+      else continue;
+      if (symbol !== "X" && symbol !== "O" && symbol !== "heart") continue;
       const size = clamp(Math.round(num(item.size, 80)), 24, 220);
       commands.push({ type: "place_mark", x, y, symbol, size });
     }

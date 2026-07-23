@@ -39,17 +39,31 @@ const canvasApp = createCanvasApp({
   onStatus: setStatus,
 });
 
+const drafts = createDraftLayer({
+  root: draftRoot,
+  canvasApp,
+  onAcceptGame: (cmd, anchor) => {
+    void games.mountFromCommand(cmd, anchor);
+    const focus = anchor || { x: cmd.x || 0, y: cmd.y || 0, w: 0, h: 0 };
+    const rect = stage.getBoundingClientRect();
+    const view = canvasApp.getView();
+    canvasApp.setView({
+      ...view,
+      x: rect.width * 0.2 - focus.x * view.scale,
+      y: rect.height * 0.18 - focus.y * view.scale,
+    });
+    games.sync();
+    void persist();
+  },
+  onStatus: setStatus,
+});
+
 const games = createGameMount({
   root: overlayRoot,
   canvasApp,
   onStatus: setStatus,
-});
-
-const drafts = createDraftLayer({
-  root: draftRoot,
-  canvasApp,
-  onAcceptGame: (cmd) => games.mountFromCommand(cmd),
-  onStatus: setStatus,
+  onInkWhisper: (text, x, y, fontSize) => drafts.addReply(text, x, y, fontSize),
+  onChanged: () => void persist(),
 });
 
 createToolbar({
@@ -77,14 +91,15 @@ function startGame(game) {
   const center = canvasApp.screenToWorld(stageRect.left + stageRect.width / 2, stageRect.top + stageRect.height / 2);
   const x = Math.round((latest?.x || center.x || 400) + 80);
   const y = Math.round(latest?.y || center.y || 400);
-  if (game === "tic_tac_toe") games.mountTicTacToe(x, y);
+  if (game === "tic_tac_toe") void games.mountTicTacToe(x, y);
   else if (game === "hangman") void games.mountHangman(x, y);
-  // Keep game on-screen
   canvasApp.setView({
     ...view,
-    x: stageRect.width / 2 - x * view.scale,
-    y: stageRect.height / 2 - y * view.scale,
+    x: stageRect.width / 2 - (x + 210) * view.scale,
+    y: stageRect.height / 2 - (y + 210) * view.scale,
   });
+  games.sync();
+  void persist();
 }
 
 gamesDialog.querySelectorAll("[data-game]").forEach((btn) => {
@@ -97,8 +112,9 @@ document.querySelector("#gamesCloseBtn")?.addEventListener("click", () => {
 
 function scheduleAsk() {
   if (autoDelay <= 0) return;
+  if (games.isActive()) return;
   clearTimeout(askTimer);
-  setStatus(`Ink settled — asking in ${autoDelay}s…`);
+  setStatus(`The page waits… answering in ${autoDelay}s`);
   askTimer = setTimeout(() => void askNow("auto"), autoDelay * 1000);
 }
 
@@ -106,17 +122,18 @@ async function askNow(userAction) {
   if (asking) return;
   const atlas = canvasApp.buildAtlas();
   if (!atlas) {
-    setStatus("Write something with Pen first, then tap Ask.", { error: true });
+    setStatus("Leave a mark first — words, a doodle, anything.", { error: true });
     return;
   }
   asking = true;
-  setStatus("The diary reads your ink…");
+  setStatus("The diary is reading you…");
   try {
     const data = await askDiary({
       mode: "canvas",
       userAction,
       atlasPngBase64: atlas.atlasPngBase64,
       geometry: atlas.geometry,
+      pageMemory: drafts.recentMemory(6),
     });
     canvasApp.consumeDirty();
     const anchor = atlas.geometry.latestInput;
@@ -134,8 +151,8 @@ async function askNow(userAction) {
     }
     setStatus(
       data.commands?.length
-        ? "The diary wrote back."
-        : "The diary stayed silent. Try Ask again."
+        ? "It answered beside your ink."
+        : "It stayed quiet. Speak again when you're ready."
     );
     await persist();
   } catch (error) {
@@ -200,4 +217,4 @@ window.addEventListener("beforeunload", () => {
 setInterval(() => void persist(), 8000);
 
 void restore();
-setStatus("Write with Pen, then tap Ask (or wait for Auto).");
+setStatus("Write or draw. It listens when the ink settles.");

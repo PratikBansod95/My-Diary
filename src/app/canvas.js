@@ -214,10 +214,31 @@ export function createCanvasApp({ stage, tileCanvas, inkCanvas, onStrokeEnd, onS
     expandDirty(worldX, worldY, worldX + width, worldY + height, 12);
   }
 
+  function strokeHeart(cx, cy, size) {
+    const s = Math.max(20, size);
+    let prevX = null;
+    let prevY = null;
+    const steps = 48;
+    for (let i = 0; i <= steps; i++) {
+      const t = (i / steps) * Math.PI * 2;
+      // Classic parametric heart, scaled into page ink
+      const hx = 16 * Math.sin(t) ** 3;
+      const hy = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
+      const x = cx + (hx / 16) * (s * 0.55);
+      const y = cy + (hy / 16) * (s * 0.55);
+      if (prevX != null) strokeToTiles(prevX, prevY, x, y, 4, "#1f3d2e");
+      prevX = x;
+      prevY = y;
+    }
+  }
+
   function drawMark(symbol, cx, cy, size = 80) {
     const s = Math.max(24, size);
     const half = s / 2;
-    if (String(symbol).toUpperCase() === "O") {
+    const kind = String(symbol || "").toLowerCase();
+    if (kind === "heart" || kind === "♥" || kind === "❤") {
+      strokeHeart(cx, cy, s);
+    } else if (kind === "o") {
       strokeEllipse(cx, cy, half * 0.85, half * 0.85);
     } else {
       const inset = half * 0.25;
@@ -237,13 +258,22 @@ export function createCanvasApp({ stage, tileCanvas, inkCanvas, onStrokeEnd, onS
   function drawVectorCommand(cmd) {
     for (const item of cmd.items || []) {
       const pts = item.points || [];
-      if (item.shape === "rect" && pts.length >= 4) {
+      const shape = String(item.shape || "").toLowerCase();
+      if (shape === "heart" && pts.length >= 2) {
+        const [cx, cy, size = 70] = pts;
+        strokeHeart(cmd.x + cx, cmd.y + cy, size);
+      } else if (shape === "rect" && pts.length >= 4) {
         const [x, y, w, h] = pts;
         strokeRect(cmd.x + x, cmd.y + y, w, h);
-      } else if (item.shape === "circle" && pts.length >= 3) {
-        const [cx, cy, r] = pts;
-        strokeEllipse(cmd.x + cx, cmd.y + cy, r, r);
-      } else if (item.shape === "ellipse" && pts.length >= 4) {
+      } else if ((shape === "circle" || shape === "ellipse") && pts.length >= 3) {
+        if (shape === "circle" || pts.length === 3) {
+          const [cx, cy, r] = pts;
+          strokeEllipse(cmd.x + cx, cmd.y + cy, r, r);
+        } else {
+          const [cx, cy, rx, ry] = pts;
+          strokeEllipse(cmd.x + cx, cmd.y + cy, rx, ry);
+        }
+      } else if (shape === "ellipse" && pts.length >= 4) {
         const [cx, cy, rx, ry] = pts;
         strokeEllipse(cmd.x + cx, cmd.y + cy, rx, ry);
       } else if (pts.length >= 4) {
@@ -291,12 +321,13 @@ export function createCanvasApp({ stage, tileCanvas, inkCanvas, onStrokeEnd, onS
       maxX: latestInput.x + latestInput.w,
       maxY: latestInput.y + latestInput.h,
     };
-    const pad = 80;
+    // Wider pad so doodles/hearts keep page context for vision
+    const pad = 140;
     const originX = Math.max(0, Math.floor(box.minX - pad));
     const originY = Math.max(0, Math.floor(box.minY - pad));
     const width = Math.min(CANVAS_W - originX, Math.ceil(box.maxX - originX + pad));
     const height = Math.min(CANVAS_H - originY, Math.ceil(box.maxY - originY + pad));
-    const maxSide = 1024;
+    const maxSide = 1280;
     const scale = Math.min(1, maxSide / Math.max(width, height, 1));
     const outW = Math.max(1, Math.round(width * scale));
     const outH = Math.max(1, Math.round(height * scale));
@@ -304,7 +335,7 @@ export function createCanvasApp({ stage, tileCanvas, inkCanvas, onStrokeEnd, onS
     atlas.width = outW;
     atlas.height = outH;
     const ctx = atlas.getContext("2d");
-    ctx.fillStyle = "#ffffff";
+    ctx.fillStyle = "#f2e6c9";
     ctx.fillRect(0, 0, outW, outH);
     ctx.scale(scale, scale);
     ctx.translate(-originX, -originY);

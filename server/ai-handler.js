@@ -85,7 +85,10 @@ export async function handleAiRequest({ body }) {
     const imageBase64 = body.atlasPngBase64 || "";
     if (!imageBase64) return { status: 400, body: { error: "Missing atlas image" } };
 
-    const userText = buildCanvasUserPrompt(geometry, body.userAction || "auto");
+    const pageMemory = Array.isArray(body.pageMemory)
+      ? body.pageMemory.map((t) => String(t || "").trim()).filter(Boolean).slice(-8)
+      : [];
+    const userText = buildCanvasUserPrompt(geometry, body.userAction || "auto", pageMemory);
     const text = await callProvider(config, {
       system: DIARY_SYSTEM_PROMPT,
       userText,

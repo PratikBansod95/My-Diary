@@ -214,6 +214,24 @@ body {
   box-shadow: 0 0 0 1px var(--glow);
 }
 
+.action.primary-ask {
+  background: linear-gradient(180deg, #3d6a52, #2a4a39);
+  border-color: rgba(180, 220, 190, 0.4);
+  min-width: 72px;
+  letter-spacing: 0.02em;
+}
+
+.action.quiet {
+  opacity: 0.72;
+  background: transparent;
+  border-color: rgba(240, 226, 196, 0.14);
+  font-weight: 500;
+}
+
+.action.quiet:hover {
+  opacity: 1;
+}
+
 .ghost {
   background: transparent;
 }
@@ -416,7 +434,7 @@ body {
 }
 
 .diary-ink-appear {
-  animation: ink-in 700ms ease-out both;
+  animation: ink-rise 900ms ease-out both;
 }
 
 .draft-item {
@@ -439,74 +457,79 @@ body {
   overflow-x: auto;
 }
 
-.game-widget {
-  position: absolute;
-  width: 280px;
-  padding: 12px;
-  border-radius: 12px;
-  background: rgba(244, 236, 214, 0.94);
-  border: 1px solid rgba(36, 25, 16, 0.25);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.16);
-  color: var(--ink);
-  font-family: var(--font-body);
-  touch-action: manipulation;
-  animation: ink-in 500ms ease-out both;
-}
-
-.game-widget h3 {
-  margin: 0 0 8px;
-  font-family: var(--font-brand);
-  font-weight: 400;
-}
-
-.ttt-board {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 6px;
-}
-
+/* Kill any legacy floating game cards — games are ink on the page only */
+.game-widget,
+.ttt-board,
 .ttt-cell {
-  aspect-ratio: 1;
-  border: 1px solid rgba(36, 25, 16, 0.3);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.45);
-  font-family: var(--font-brand);
-  font-size: 1.8rem;
+  display: none !important;
+}
+.parchment-hits {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 4;
+}
+
+.parchment-cell {
+  position: absolute;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
   cursor: pointer;
+  pointer-events: auto;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.ttt-cell:disabled {
-  cursor: default;
-  opacity: 0.9;
+.parchment-cell:active {
+  background: rgba(31, 61, 46, 0.06);
 }
 
-.hangman-word {
-  letter-spacing: 0.35em;
-  font-family: var(--font-brand);
-  font-size: 1.4rem;
-  margin: 8px 0;
-  min-height: 1.6em;
-}
-
-.hangman-keys {
+.parchment-letterbar {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  justify-content: center;
+  gap: 5px;
+  max-width: min(92vw, 520px);
+  padding: 10px 12px;
+  pointer-events: auto;
+  background: linear-gradient(
+    180deg,
+    rgba(236, 224, 196, 0.55),
+    rgba(214, 198, 162, 0.72)
+  );
+  border: 1px solid rgba(36, 25, 16, 0.18);
+  border-radius: 2px;
+  box-shadow: 0 8px 24px rgba(40, 28, 12, 0.12);
+  animation: ink-in 450ms ease-out both;
 }
 
-.hangman-keys button {
-  min-width: 32px;
-  min-height: 36px;
-  border-radius: 6px;
-  border: 1px solid rgba(36, 25, 16, 0.25);
-  background: rgba(255, 255, 255, 0.5);
-  font-family: var(--font-body);
-  font-weight: 700;
+.parchment-letter {
+  min-width: 30px;
+  min-height: 34px;
+  border: none;
+  border-bottom: 1.5px solid rgba(31, 61, 46, 0.45);
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink-deep, #1f3d2e);
+  font-family: var(--font-brand);
+  font-size: 1.05rem;
+  font-style: italic;
   cursor: pointer;
+  touch-action: manipulation;
 }
 
-.hangman-keys button:disabled {
-  opacity: 0.35;
+.parchment-letter:hover:not(:disabled) {
+  background: rgba(31, 61, 46, 0.07);
+}
+
+.parchment-letter:disabled {
+  opacity: 0.28;
 }
 
 .game-status {
@@ -533,6 +556,23 @@ body {
     transform: translateY(6px);
   }
   to {
+    opacity: 1;
+    filter: none;
+    transform: none;
+  }
+}
+
+@keyframes ink-rise {
+  0% {
+    opacity: 0;
+    filter: blur(3px);
+    transform: translateY(10px);
+  }
+  55% {
+    opacity: 0.85;
+    filter: blur(0.5px);
+  }
+  100% {
     opacity: 1;
     filter: none;
     transform: none;
