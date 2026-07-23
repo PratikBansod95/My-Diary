@@ -398,38 +398,25 @@ body {
   position: absolute;
   min-width: 120px;
   max-width: 420px;
-  padding: 10px 12px 42px;
-  border: 1.5px dashed var(--accent);
-  border-radius: 8px;
-  background: rgba(244, 236, 214, 0.88);
+  padding: 10px 12px;
+  border: none;
+  border-radius: 0;
+  background: transparent;
   color: var(--ink-diary);
   font-family: var(--font-brand);
   font-style: italic;
   font-size: 1.15rem;
   line-height: 1.35;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-  animation: ink-in 480ms ease-out both;
-  cursor: grab;
-  touch-action: none;
+  box-shadow: none;
+  pointer-events: none;
+}
+
+.diary-ink-appear {
+  animation: ink-in 700ms ease-out both;
 }
 
 .draft-item .draft-actions {
-  position: absolute;
-  right: 8px;
-  bottom: 8px;
-  display: flex;
-  gap: 6px;
-}
-
-.draft-item button {
-  min-height: 34px;
-  border-radius: 999px;
-  border: 1px solid rgba(36, 25, 16, 0.25);
-  background: #fff8e8;
-  font-family: var(--font-body);
-  font-weight: 600;
-  padding: 0 10px;
-  cursor: pointer;
+  display: none;
 }
 
 .draft-formula {

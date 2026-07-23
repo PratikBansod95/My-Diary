@@ -1,11 +1,12 @@
 import { renderLatex } from "../math/katex-render.js";
 
+/**
+ * Commits diary replies straight onto the page — no Keep/Discard.
+ * A short ink fade-in keeps the “writing itself” feel.
+ */
 export function createDraftLayer({ root, canvasApp, onAcceptGame, onStatus }) {
-  const drafts = [];
-
   function clear() {
     root.innerHTML = "";
-    drafts.length = 0;
   }
 
   function resolvePosition(cmd, anchor) {
@@ -18,14 +19,33 @@ export function createDraftLayer({ root, canvasApp, onAcceptGame, onStatus }) {
       const ah = anchor.h ?? 40;
       const far = Math.abs(x - ax) > 1800 || Math.abs(y - ay) > 1800 || x < 0 || y < 0;
       if (far || (x === 0 && y === 0)) {
-        x = Math.round(ax + aw + 40);
-        y = Math.round(ay);
+        x = Math.round(ax + aw + 48);
+        y = Math.round(ay + Math.min(ah, 80));
       }
     }
     return { x, y };
   }
 
-  function placeCommands(commands, anchor = null) {
+  async function commitTextOrFormula(cmd) {
+    const host = document.createElement("div");
+    host.className =
+      "draft-item diary-ink-appear" + (cmd.type === "draw_formula" ? " draft-formula" : "");
+    host.style.left = "-9999px";
+    host.style.top = "0";
+    host.style.pointerEvents = "none";
+    const body = document.createElement("div");
+    body.className = "draft-body";
+    if (cmd.type === "draw_formula") renderLatex(cmd.latex, body);
+    else body.textContent = cmd.text;
+    host.appendChild(body);
+    root.appendChild(host);
+    // Allow layout/fonts to settle briefly before burning into tiles
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    await canvasApp.burnDomElement(body, cmd.x, cmd.y);
+    host.remove();
+  }
+
+  async function placeCommands(commands, anchor = null) {
     let firstWorld = null;
     for (const cmd of commands) {
       const pos = resolvePosition(cmd, anchor);
@@ -38,112 +58,19 @@ export function createDraftLayer({ root, canvasApp, onAcceptGame, onStatus }) {
         continue;
       }
       if (cmd.type === "draw") {
-        const item = document.createElement("div");
-        item.className = "draft-item";
-        item.dataset.type = "draw";
-        item._cmd = cmd;
-        item._world = { x: cmd.x, y: cmd.y };
-        const screen = canvasApp.worldToScreen(cmd.x, cmd.y);
-        item.style.left = `${screen.x}px`;
-        item.style.top = `${screen.y}px`;
-        item.innerHTML = `<div>Diagram ready</div><div class="draft-actions"><button type="button" data-act="accept">Keep</button><button type="button" data-act="discard">Discard</button></div>`;
-        wireDrag(item);
-        wireActions(item);
-        root.appendChild(item);
-        drafts.push(item);
+        canvasApp.drawVectorCommand(cmd);
         continue;
       }
-
-      const item = document.createElement("div");
-      item.className = "draft-item" + (cmd.type === "draw_formula" ? " draft-formula" : "");
-      item._cmd = cmd;
-      item._world = { x: cmd.x, y: cmd.y };
-      const screen = canvasApp.worldToScreen(cmd.x, cmd.y);
-      item.style.left = `${screen.x}px`;
-      item.style.top = `${screen.y}px`;
-
-      const body = document.createElement("div");
-      body.className = "draft-body";
-      if (cmd.type === "draw_formula") renderLatex(cmd.latex, body);
-      else body.textContent = cmd.text;
-      item.appendChild(body);
-
-      const actions = document.createElement("div");
-      actions.className = "draft-actions";
-      actions.innerHTML =
-        '<button type="button" data-act="accept">Keep</button><button type="button" data-act="discard">Discard</button>';
-      item.appendChild(actions);
-
-      wireDrag(item);
-      wireActions(item);
-      root.appendChild(item);
-      drafts.push(item);
+      if (cmd.type === "write_text" || cmd.type === "draw_formula") {
+        await commitTextOrFormula(cmd);
+      }
     }
-    syncPositions();
+    onStatus?.("The diary has answered.");
     return firstWorld;
   }
 
-  function wireDrag(item) {
-    let dragging = null;
-    item.addEventListener("pointerdown", (event) => {
-      if (event.target.closest("button")) return;
-      dragging = {
-        id: event.pointerId,
-        ox: event.clientX - parseFloat(item.style.left || "0"),
-        oy: event.clientY - parseFloat(item.style.top || "0"),
-      };
-      item.setPointerCapture(event.pointerId);
-      event.stopPropagation();
-    });
-    item.addEventListener("pointermove", (event) => {
-      if (!dragging || dragging.id !== event.pointerId) return;
-      const left = event.clientX - dragging.ox;
-      const top = event.clientY - dragging.oy;
-      item.style.left = `${left}px`;
-      item.style.top = `${top}px`;
-      const rect = root.getBoundingClientRect();
-      const world = canvasApp.screenToWorld(rect.left + left, rect.top + top);
-      item._world = { x: world.x, y: world.y };
-      item._cmd.x = Math.round(world.x);
-      item._cmd.y = Math.round(world.y);
-    });
-    item.addEventListener("pointerup", () => {
-      dragging = null;
-    });
-  }
-
-  function wireActions(item) {
-    item.addEventListener("click", async (event) => {
-      const btn = event.target.closest("button[data-act]");
-      if (!btn) return;
-      const act = btn.getAttribute("data-act");
-      if (act === "discard") {
-        item.remove();
-        const idx = drafts.indexOf(item);
-        if (idx >= 0) drafts.splice(idx, 1);
-        return;
-      }
-      if (act === "accept") {
-        const cmd = item._cmd;
-        if (cmd.type === "draw") {
-          canvasApp.drawVectorCommand(cmd);
-        } else {
-          await canvasApp.burnDomElement(item.querySelector(".draft-body") || item, cmd.x, cmd.y);
-        }
-        item.remove();
-        const idx = drafts.indexOf(item);
-        if (idx >= 0) drafts.splice(idx, 1);
-        onStatus?.("The ink stays.");
-      }
-    });
-  }
-
   function syncPositions() {
-    for (const item of drafts) {
-      const screen = canvasApp.worldToScreen(item._world.x, item._world.y);
-      item.style.left = `${screen.x}px`;
-      item.style.top = `${screen.y}px`;
-    }
+    // No floating drafts to track — replies are burned into the page.
   }
 
   return { clear, placeCommands, syncPositions };

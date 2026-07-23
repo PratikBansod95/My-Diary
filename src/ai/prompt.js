@@ -17,7 +17,7 @@ Return ONLY valid JSON (no markdown fences, no prose outside JSON) with this sha
 }
 
 Rules:
-- Prefer write_text for answers, explanations, and conversation.
+- Prefer write_text for answers, explanations, and conversation. Replies are written permanently onto the page like living ink — never ask the user to confirm or discard.
 - Use draw_formula for mathematics (LaTeX without surrounding $$).
 - Use draw for simple diagrams (line, rect, ellipse, circle).
 - Use start_game only when the user clearly asks to play tic-tac-toe or hangman.

@@ -120,7 +120,7 @@ async function askNow(userAction) {
     });
     canvasApp.consumeDirty();
     const anchor = atlas.geometry.latestInput;
-    const focus = drafts.placeCommands(data.commands || [], anchor);
+    const focus = await drafts.placeCommands(data.commands || [], anchor);
     if (focus) {
       const rect = stage.getBoundingClientRect();
       const view = canvasApp.getView();
@@ -129,13 +129,12 @@ async function askNow(userAction) {
         x: rect.width * 0.2 - focus.x * view.scale,
         y: rect.height * 0.25 - focus.y * view.scale,
       });
-      drafts.syncPositions();
       games.sync();
     }
     setStatus(
       data.commands?.length
-        ? "Reply is on the page — Keep or Discard."
-        : "The diary returned no commands. Try Ask again."
+        ? "The diary wrote back."
+        : "The diary stayed silent. Try Ask again."
     );
     await persist();
   } catch (error) {
