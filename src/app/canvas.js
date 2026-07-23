@@ -173,13 +173,13 @@ export function createCanvasApp({ stage, tileCanvas, inkCanvas, onStrokeEnd, onS
     if (text.trim()) burnWorldText(text, worldX, worldY);
   }
 
-  /** Burn diary prose in large world units so it matches stylus handwriting scale. */
-  function burnWorldText(text, worldX, worldY) {
+  /** Burn diary prose in world units, sized like the user's handwriting when possible. */
+  function burnWorldText(text, worldX, worldY, options = {}) {
     const raw = String(text || "").trim();
     if (!raw) return;
-    const fontSize = 56;
-    const lineHeight = 70;
-    const maxWidth = 900;
+    const fontSize = Math.min(200, Math.max(36, Math.round(Number(options.fontSize) || 64)));
+    const lineHeight = Math.round(fontSize * 1.25);
+    const maxWidth = Math.round(fontSize * 14);
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
     ctx.font = `italic ${fontSize}px "IM Fell English", Georgia, serif`;
@@ -197,19 +197,19 @@ export function createCanvasApp({ stage, tileCanvas, inkCanvas, onStrokeEnd, onS
     if (current) lines.push(current);
 
     const width = Math.ceil(
-      Math.min(maxWidth + 40, Math.max(...lines.map((line) => ctx.measureText(line).width), 120) + 40)
+      Math.min(maxWidth + fontSize, Math.max(...lines.map((line) => ctx.measureText(line).width), fontSize) + fontSize * 0.6)
     );
-    const height = Math.ceil(lines.length * lineHeight + 40);
+    const height = Math.ceil(lines.length * lineHeight + fontSize * 0.5);
     const scale = 2;
-    canvas.width = width * scale;
-    canvas.height = height * scale;
+    canvas.width = Math.max(2, width * scale);
+    canvas.height = Math.max(2, height * scale);
     const draw = canvas.getContext("2d");
     draw.scale(scale, scale);
     draw.clearRect(0, 0, width, height);
     draw.fillStyle = "#1a3328";
     draw.font = `italic ${fontSize}px "IM Fell English", Georgia, serif`;
     draw.textBaseline = "top";
-    lines.forEach((line, i) => draw.fillText(line, 16, 16 + i * lineHeight));
+    lines.forEach((line, i) => draw.fillText(line, fontSize * 0.2, fontSize * 0.15 + i * lineHeight));
     burnImage(canvas, worldX, worldY, width, height);
     expandDirty(worldX, worldY, worldX + width, worldY + height, 12);
   }

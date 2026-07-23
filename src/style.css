@@ -396,16 +396,15 @@ body {
 
 .diary-reply {
   position: absolute;
-  min-width: 140px;
-  max-width: min(70vw, 420px);
-  padding: 4px 2px;
+  min-width: 2em;
+  padding: 0;
   border: none;
   background: transparent;
   color: var(--ink-diary);
   font-family: var(--font-brand);
   font-style: italic;
-  font-size: clamp(1.25rem, 3.6vw, 1.7rem);
-  line-height: 1.4;
+  font-weight: 500;
+  line-height: 1.25;
   text-shadow: 0 1px 0 rgba(255, 245, 220, 0.35);
   pointer-events: none;
   z-index: 6;
