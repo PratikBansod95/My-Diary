@@ -9,7 +9,7 @@ export async function callOpenAI({
   extraHeaders = {},
   jsonMode = false,
   maxTokens = 700,
-  timeoutMs = 55_000,
+  timeoutMs = 100_000,
 }) {
   const root = (baseUrl || "https://api.openai.com/v1").replace(/\/$/, "");
   const content = [{ type: "text", text: userText }];
@@ -49,7 +49,7 @@ export async function callOpenAI({
     if (error?.name === "AbortError") {
       throw Object.assign(
         new Error(
-          "The diary took too long to answer (model timeout). Try Speak again, or set OPENROUTER_MODEL on Vercel to a vision model your OpenRouter key can use."
+          "The diary took too long to answer (NVIDIA/OpenRouter timeout). Tap Speak again in a moment."
         ),
         { status: 504 }
       );

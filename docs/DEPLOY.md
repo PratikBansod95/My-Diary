@@ -22,11 +22,13 @@ npm run build   # production assets in dist/
 2. Import the project in [Vercel](https://vercel.com).
 3. Framework preset: Vite. Build command: `npm run build`. Output: `dist`.
 4. Root directory: repository root (where `package.json` lives).
-5. Deploy. Set **`OPENROUTER_API_KEY`** in Vercel → Settings → Environment Variables (Production + Preview). Optional: `OPENROUTER_MODEL` (default `nvidia/nemotron-nano-12b-v2-vl:free`).
+5. Deploy. Set these in Vercel → Settings → Environment Variables (Production + Preview):
+   - **`OPENROUTER_API_KEY`** (required)
+   - **`OPENROUTER_MODEL`** = `nvidia/nemotron-nano-12b-v2-vl:free` (recommended; matches the app default)
 
 The `/api/ai` and `/api/test` serverless functions call OpenRouter with the server key. The browser never sees the key.
 
-**After adding or changing env vars, redeploy** so the new values load.
+**After adding or changing env vars, redeploy** so the new values load. If Speak times out (504), the free NVIDIA queue was slow — retry, or temporarily use a faster paid vision model.
 
 ## Tablet + pen tips
 

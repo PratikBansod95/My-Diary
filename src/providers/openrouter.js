@@ -1,8 +1,8 @@
 import { callOpenAI } from "./openai.js";
 
 export const OPENROUTER_DEFAULT_BASE_URL = "https://openrouter.ai/api/v1";
-// Default to the NVIDIA free vision model the project was set up with.
-// Override with OPENROUTER_MODEL (e.g. google/gemini-2.0-flash-001 if you have that provider on OpenRouter).
+// NVIDIA Nemotron VL via OpenRouter (matches Vercel OPENROUTER_MODEL / key setup).
+// Override anytime with OPENROUTER_MODEL.
 export const OPENROUTER_DEFAULT_MODEL = "nvidia/nemotron-nano-12b-v2-vl:free";
 
 /**
